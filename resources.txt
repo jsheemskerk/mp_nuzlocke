@@ -1,0 +1,3 @@
+http://bitop.luajit.org/
+http://tasvideos.org/EmulatorResources/VBA/LuaScriptingFunctions.html
+http://www.lua.org/manual/5.1/

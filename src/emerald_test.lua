@@ -2,8 +2,7 @@
 local ptr_to_dword = memory.readdwordunsigned
 
 -- Constants
-local DWORD_SIZE = 32
-local DWORD_PTR_SIZE = 4
+local DWORD_NBYTES = 4
 
 -- Pointers
 local start_ptr = 0x20244EC
@@ -17,30 +16,29 @@ local block_orders = {
 }
 
 -- Retrieves a number of bits from a certain location in a bit string.
-function get_bits(bit_str, loc, n_bits)
-	return bit.rshift(bit_str, loc) % bit.lshift(1, n_bits)
+function get_bits(bit_str, loc, nbits)
+	return bit.rshift(bit_str, loc) % bit.lshift(1, nbits)
 end
 
 -- Prints IVs for each pokemon in the party.
 function print_ivs()
 	for slot = 0, 5 do
-		poke_ptr = start_ptr + 100 * slot
-		personality = ptr_to_dword(poke_ptr)
-		trainer_id = ptr_to_dword(poke_ptr + DWORD_PTR_SIZE)
+		slot_ptr = start_ptr + (slot * 25) * DWORD_NBYTES
+		personality = ptr_to_dword(slot_ptr)
+		trainer_id = ptr_to_dword(slot_ptr + DWORD_NBYTES)
 		magic_word = bit.bxor(personality, trainer_id)
 		block_order = block_orders[(personality % 24) + 1]
 
-		blocks_off = DWORD_PTR_SIZE * 8
-		block_0_off = blocks_off + block_order[1] * (3 * DWORD_PTR_SIZE)
-		block_1_off = blocks_off + block_order[2] * (3 * DWORD_PTR_SIZE)
-		block_2_off = blocks_off + block_order[3] * (3 * DWORD_PTR_SIZE)
-		block_3_off = blocks_off + block_order[4] * (3 * DWORD_PTR_SIZE)
+		block_offs = {}
+		for i = 1, 4 do
+			block_offs[i] = 8 * DWORD_NBYTES + (block_order[i] * 3) * DWORD_NBYTES
+		end
 
-		block_0_dword_0 = bit.bxor(ptr_to_dword(poke_ptr + block_0_off), magic_word)
-		species = get_bits(block_0_dword_0, 0, 16)
+		block_00 = ptr_to_dword(slot_ptr + block_offs[1])
+		species = get_bits(bit.bxor(block_00, magic_word), 0, 16)
 
-		block_3_dword_1 = bit.bxor(ptr_to_dword(poke_ptr + block_3_off + DWORD_PTR_SIZE), magic_word)
-		ivs = get_bits(block_3_dword_1, 0, 30)
+		block_31 = ptr_to_dword(slot_ptr + block_offs[4] + DWORD_NBYTES)
+		ivs = get_bits(bit.bxor(block_31, magic_word), 0, 30)
 
 		if input.get()["Q"] and species ~= 0 then
 			str = "Pokemon: " .. species .. ". IVs: "
@@ -51,4 +49,5 @@ function print_ivs()
 		end
 	end
 end
+
 gui.register(print_ivs)

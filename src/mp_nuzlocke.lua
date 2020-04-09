@@ -3,6 +3,7 @@
 
 -- Aliases
 read_dword = memory.readdwordunsigned
+read_byte = memory.readbyteunsigned
 
 -- Constants
 DWORD_NBYTES = 4
@@ -64,11 +65,6 @@ function get_party_data()
 		local nature = personality % 25
 		local magic_word = bit.bxor(personality, trainer_id)
 
-		local og_trainer_data = {
-			read_dword(slot_ptr + 5 * DWORD_NBYTES),
-			read_dword(slot_ptr + 6 * DWORD_NBYTES)
-		}
-
 		local block_order = block_orders[(personality % 24) + 1]
 		local block_offs = {}
 		for i = 1, 4 do
@@ -113,11 +109,9 @@ function get_party_data()
 				end
 			elseif input["E"] and past_input["E"] == nil then
 				local trainer_name = ""
-				for i = 0, 3 do
-					trainer_name = trainer_name .. charset[get_bits(og_trainer_data[1], i * 8, 8)]
-				end
-				for i = 0, 2 do
-					trainer_name = trainer_name .. charset[get_bits(og_trainer_data[2], i * 8, 8)]
+				local name_ptr = slot_ptr + 5 * DWORD_NBYTES
+				for i = 1, 7 do
+					trainer_name = trainer_name .. charset[read_byte(name_ptr + (i - 1))]
 				end
 				print(trainer_name)
 			end

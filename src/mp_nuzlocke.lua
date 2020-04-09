@@ -106,12 +106,12 @@ function get_party_data()
 			get_bits(slot_data[4][2], 20, 5), get_bits(slot_data[4][2], 25, 5),
 		}
 
-		hps[slot] = hp
 		ids[slot] = id
+		hps[slot] = hp
 
 		if id ~= 0 then
 			if hp == 0 and past_hps[slot] ~= 0 and id == past_ids[slot] then
-				http.request("http://joran.fun/send.php?message=Poke%20" .. id .. "%20has%20fainted!")
+				http.request("http://joran.fun/db/died.php?pid=" .. id)
 			end
 			if input["Q"] and past_input["Q"] == nil then 
 				local str = "Pokemon: " .. id .. ". IVs: "

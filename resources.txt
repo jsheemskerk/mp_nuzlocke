@@ -1,3 +1,4 @@
 http://bitop.luajit.org/
 http://tasvideos.org/EmulatorResources/VBA/LuaScriptingFunctions.html
 http://www.lua.org/manual/5.1/
+https://bulbapedia.bulbagarden.net/wiki/Pok%C3%A9mon_data_structure_in_Generation_III

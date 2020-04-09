@@ -1,6 +1,11 @@
 -- Script which retrieves data required for multiplayer Nuzlocke runs.
 -- Based on the scripts by https://github.com/EverOddish.
 
+package.path = 'httplib/?.lua;' .. package.path
+package.cpath = 'httplib/?.dll;' .. package.cpath
+socket = require "socket"
+http = require "socket.http"
+
 -- Aliases
 read_dword = memory.readdwordunsigned
 read_word = memory.readwordunsigned
@@ -106,7 +111,7 @@ function get_party_data()
 
 		if id ~= 0 then
 			if hp == 0 and past_hps[slot] ~= 0 and id == past_ids[slot] then
-				print("Slot " .. slot .. ": Poke " .. id .. " has fainted!")
+				http.request("http://joran.fun/send.php?message=Poke%20" .. id .. "%20has%20fainted!")
 			end
 			if input["Q"] and past_input["Q"] == nil then 
 				local str = "Pokemon: " .. id .. ". IVs: "

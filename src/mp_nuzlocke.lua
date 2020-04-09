@@ -3,6 +3,7 @@
 
 -- Aliases
 read_dword = memory.readdwordunsigned
+read_word = memory.readwordunsigned
 read_byte = memory.readbyteunsigned
 
 -- Constants
@@ -10,6 +11,8 @@ DWORD_NBYTES = 4
 
 -- History
 past_input = {}
+past_hps = {}
+past_ids = {}
 
 -- Retrieves a number of bits from a certain location in a bit string.
 function get_bits(bit_str, loc, nbits)
@@ -58,12 +61,17 @@ function get_party_data()
 	}
 	local charset = {[0xBB] = "A", [0xFF] = ""}
 	local input = input.get()
-	for slot = 0, 5 do
-		local slot_ptr = start_ptr + (slot * 25) * DWORD_NBYTES
+	local hps = {}
+	local ids = {}
+	for slot = 1, 6 do
+		local slot_ptr = start_ptr + ((slot - 1) * 25) * DWORD_NBYTES
 		local personality = read_dword(slot_ptr)
 		local trainer_id = read_dword(slot_ptr + DWORD_NBYTES)
 		local nature = personality % 25
 		local magic_word = bit.bxor(personality, trainer_id)
+
+		local hp = read_word(slot_ptr + 86)
+		local maxhp = read_word(slot_ptr + 88)
 
 		local block_order = block_orders[(personality % 24) + 1]
 		local block_offs = {}
@@ -93,13 +101,20 @@ function get_party_data()
 			get_bits(slot_data[4][2], 20, 5), get_bits(slot_data[4][2], 25, 5),
 		}
 
+		hps[slot] = hp
+		ids[slot] = id
+
 		if id ~= 0 then
+			if hp == 0 and past_hps[slot] ~= 0 and id == past_ids[slot] then
+				print("Slot " .. slot .. ": Poke " .. id .. " has fainted!")
+			end
 			if input["Q"] and past_input["Q"] == nil then 
 				local str = "Pokemon: " .. id .. ". IVs: "
 				for i = 1, 5 do
 					str = str .. ivs[i] .. "/"
 				end
-				print(str .. ivs[6])
+				str = str .. ivs[6] .. ". HP: " .. hp .. "/" .. maxhp
+				print(str)
 			elseif input["W"] and past_input["W"] == nil then
 				for i = 1, 4 do
 					print("Slot " .. slot .. " Block " .. i)
@@ -116,6 +131,10 @@ function get_party_data()
 				print(trainer_name)
 			end
 		end
+	end
+	for slot = 1, 6 do
+		past_ids = ids
+		past_hps = hps
 	end
 	past_input = input
 end

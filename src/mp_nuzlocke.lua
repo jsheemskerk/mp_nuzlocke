@@ -55,6 +55,7 @@ function get_party_data()
 		{1,2,0,3}, {1,3,0,2}, {2,1,0,3}, {3,1,0,2}, {2,3,0,1}, {3,2,0,1},
 		{1,2,3,0}, {1,3,2,0}, {2,1,3,0}, {3,1,2,0}, {2,3,1,0}, {3,2,1,0}
 	}
+	local charset = {[0xBB] = "A", [0xFF] = ""}
 	local input = input.get()
 	for slot = 0, 5 do
 		local slot_ptr = start_ptr + (slot * 25) * DWORD_NBYTES
@@ -63,6 +64,11 @@ function get_party_data()
 		local nature = personality % 25
 		local magic_word = bit.bxor(personality, trainer_id)
 
+		local og_trainer_data = {
+			read_dword(slot_ptr + 5 * DWORD_NBYTES),
+			read_dword(slot_ptr + 6 * DWORD_NBYTES)
+		}
+
 		local block_order = block_orders[(personality % 24) + 1]
 		local block_offs = {}
 		for i = 1, 4 do
@@ -70,6 +76,7 @@ function get_party_data()
 		end
 
 		local slot_data = get_slot_data(slot_ptr, block_offs, magic_word)
+		local id = get_bits(slot_data[1][1], 0, 16)
 		local exp = get_bits(slot_data[1][2], 0, 16)
 		local move_ids = {
 			get_bits(slot_data[2][1], 0, 16), get_bits(slot_data[2][1], 16, 16),
@@ -104,6 +111,15 @@ function get_party_data()
 						print(j .. ": " .. as_bits(slot_data[i][j], 8))
 					end
 				end
+			elseif input["E"] and past_input["E"] == nil then
+				local trainer_name = ""
+				for i = 0, 3 do
+					trainer_name = trainer_name .. charset[get_bits(og_trainer_data[1], i * 8, 8)]
+				end
+				for i = 0, 2 do
+					trainer_name = trainer_name .. charset[get_bits(og_trainer_data[2], i * 8, 8)]
+				end
+				print(trainer_name)
 			end
 		end
 	end

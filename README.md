@@ -1,1 +1,1 @@
-e
+Framework for multiplayer Nuzlocke runs.

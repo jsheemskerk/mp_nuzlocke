@@ -54,6 +54,20 @@ function as_bits(dword, block_len)
 	return bits
 end
 
+function to_ascii(byte)
+	if byte >= 0xA1 and byte <= 0xAA then
+		return string.char(byte - 113)
+	elseif byte == 0xAE then
+		return "-"
+	elseif byte >= 0xBB and byte <= 0xD4 then
+		return string.char(byte - 122)
+	elseif byte >= 0xD5 and byte <= 0xEE then
+		return string.char(byte - 116)
+	else
+		return ""
+	end
+end
+
 -- Retrieves the data for each pokemon in the party.
 function get_party_data()
 	local start_ptr = 0x20244EC
@@ -84,6 +98,11 @@ function get_party_data()
 			block_offs[i] = 8 * DWORD_NBYTES + (block_order[i] * 3) * DWORD_NBYTES
 		end
 
+		local nick = ""
+		for i = 1, 10 do
+			nick = nick .. to_ascii(read_byte(slot_ptr + 8 + (i - 1)))
+		end
+
 		local slot_data = get_slot_data(slot_ptr, block_offs, magic_word)
 		local id = get_bits(slot_data[1][1], 0, 16)
 		local exp = get_bits(slot_data[1][2], 0, 16)
@@ -111,6 +130,7 @@ function get_party_data()
 
 		if id ~= 0 then
 			if past_ids[slot] == 0 then
+				local response_body = { }
 				data = [[{
 					"pid": ]] .. personality .. [[,
 					"pindex": ]] .. id .. [[,
@@ -120,8 +140,10 @@ function get_party_data()
 					"spaiv": ]] .. ivs[5] .. [[,
 					"spdiv": ]] .. ivs[6] .. [[,
 					"speiv": ]] .. ivs[4] .. [[,
-					"lvl": ]] .. lvl .. [[
+					"lvl": ]] .. lvl .. [[,
+					"nick": "]] .. nick .. [["
 				}]]
+				print(data)
 				http.request{
 					url = "http://joran.fun/db/postpokemon.php",
 					method = "POST",
@@ -129,8 +151,10 @@ function get_party_data()
 						["Content-Type"] = "application/json",
 						["Content-Length"] = data:len()
 					},
-					source = ltn12.source.string(data)
+					source = ltn12.source.string(data),
+					sink = ltn12.sink.table(response_body)
 				}
+				print("response = " .. table.concat(response_body))
 			end
 			if hp == 0 and past_hps[slot] ~= 0 and id == past_ids[slot] then
 				http.request("http://joran.fun/db/died.php?pindex=" .. id)
@@ -153,7 +177,7 @@ function get_party_data()
 				local trainer_name = ""
 				local name_ptr = slot_ptr + 5 * DWORD_NBYTES
 				for i = 1, 7 do
-					trainer_name = trainer_name .. charset[read_byte(name_ptr + (i - 1))]
+					trainer_name = trainer_name .. to_ascii(read_byte(name_ptr + (i - 1))])
 				end
 				print(trainer_name)
 			end

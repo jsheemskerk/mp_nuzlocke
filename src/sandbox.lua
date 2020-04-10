@@ -68,6 +68,22 @@ function to_ascii(byte)
 	end
 end
 
+function http_post(url, data)
+	local response_body = {}
+	print(data)
+	http.request{
+		url = url,
+		method = "POST",
+		headers = {
+			["Content-Type"] = "application/json",
+			["Content-Length"] = data:len()
+		},
+		source = ltn12.source.string(data),
+		sink = ltn12.sink.table(response_body)
+	}
+	print("response = " .. table.concat(response_body))
+end
+
 -- Retrieves the data for each pokemon in the party.
 function get_party_data()
 	local start_ptr = 0x20244EC
@@ -88,9 +104,17 @@ function get_party_data()
 		local nature = personality % 25
 		local magic_word = bit.bxor(personality, trainer_id)
 
+		local trainer_name = ""
+		local name_ptr = slot_ptr + 5 * DWORD_NBYTES
+		for i = 1, 7 do
+			trainer_name = trainer_name .. to_ascii(read_byte(name_ptr + (i - 1)))
+		end
+
 		local hp = read_word(slot_ptr + 86)
 		local maxhp = read_word(slot_ptr + 88)
 		local lvl = read_byte(slot_ptr + 84)
+
+		local died = "false"
 
 		local block_order = block_orders[(personality % 24) + 1]
 		local block_offs = {}
@@ -129,35 +153,25 @@ function get_party_data()
 		hps[slot] = hp
 
 		if id ~= 0 then
+			if hp == 0 and past_hps[slot] ~= 0 and id == past_ids[slot] then
+				http.request("http://joran.fun/db/died.php?pindex=" .. id)
+			end
 			if past_ids[slot] == 0 then
-				local response_body = { }
-				data = [[{
+				local poke_data = [[{
 					"pid": ]] .. personality .. [[,
+					"tname": "]] .. trainer_name .. [[",
 					"pindex": ]] .. id .. [[,
+					"nick": "]] .. nick .. [[",
+					"lvl": ]] .. lvl .. [[,
+					"died": "]] .. died .. [[",
 					"hpiv": ]] .. ivs[1] .. [[,
 					"atkiv": ]] .. ivs[2] .. [[,
 					"defiv": ]] .. ivs[3] .. [[,
 					"spaiv": ]] .. ivs[5] .. [[,
 					"spdiv": ]] .. ivs[6] .. [[,
-					"speiv": ]] .. ivs[4] .. [[,
-					"lvl": ]] .. lvl .. [[,
-					"nick": "]] .. nick .. [["
+					"speiv": ]] .. ivs[4] .. [[
 				}]]
-				print(data)
-				http.request{
-					url = "http://joran.fun/db/postpokemon.php",
-					method = "POST",
-					headers = {
-						["Content-Type"] = "application/json",
-						["Content-Length"] = data:len()
-					},
-					source = ltn12.source.string(data),
-					sink = ltn12.sink.table(response_body)
-				}
-				print("response = " .. table.concat(response_body))
-			end
-			if hp == 0 and past_hps[slot] ~= 0 and id == past_ids[slot] then
-				http.request("http://joran.fun/db/died.php?pindex=" .. id)
+				http_post("http://joran.fun/db/postpokemon.php", poke_data)
 			end
 			if input["Q"] and past_input["Q"] == nil then 
 				local str = "Pokemon: " .. id .. ". IVs: "
@@ -174,11 +188,6 @@ function get_party_data()
 					end
 				end
 			elseif input["E"] and past_input["E"] == nil then
-				local trainer_name = ""
-				local name_ptr = slot_ptr + 5 * DWORD_NBYTES
-				for i = 1, 7 do
-					trainer_name = trainer_name .. to_ascii(read_byte(name_ptr + (i - 1))])
-				end
 				print(trainer_name)
 			end
 		end

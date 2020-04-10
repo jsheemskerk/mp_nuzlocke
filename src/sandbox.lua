@@ -15,8 +15,8 @@ DWORD_NBYTES = 4
 
 -- History
 past_input = {}
-past_hps = {}
-past_ids = {}
+past_hps = {-1, -1, -1, -1, -1, -1}
+past_ids = {-1, -1, -1, -1, -1, -1}
 
 -- Retrieves a number of bits from a certain location in a bit string.
 function get_bits(bit_str, loc, nbits)
@@ -76,6 +76,7 @@ function get_party_data()
 
 		local hp = read_word(slot_ptr + 86)
 		local maxhp = read_word(slot_ptr + 88)
+		local lvl = read_byte(slot_ptr + 84)
 
 		local block_order = block_orders[(personality % 24) + 1]
 		local block_offs = {}
@@ -109,8 +110,30 @@ function get_party_data()
 		hps[slot] = hp
 
 		if id ~= 0 then
+			if past_ids[slot] == 0 then
+				data = [[{
+					"pid": ]] .. personality .. [[,
+					"pindex": ]] .. id .. [[,
+					"hpiv": ]] .. ivs[1] .. [[,
+					"atkiv": ]] .. ivs[2] .. [[,
+					"defiv": ]] .. ivs[3] .. [[,
+					"spaiv": ]] .. ivs[5] .. [[,
+					"spdiv": ]] .. ivs[6] .. [[,
+					"speiv": ]] .. ivs[4] .. [[,
+					"lvl": ]] .. lvl .. [[
+				}]]
+				http.request{
+					url = "http://joran.fun/db/postpokemon.php",
+					method = "POST",
+					headers = {
+						["Content-Type"] = "application/json",
+						["Content-Length"] = data:len()
+					},
+					source = ltn12.source.string(data)
+				}
+			end
 			if hp == 0 and past_hps[slot] ~= 0 and id == past_ids[slot] then
-				http.request("http://joran.fun/db/died.php?pid=" .. id)
+				http.request("http://joran.fun/db/died.php?pindex=" .. id)
 			end
 			if input["Q"] and past_input["Q"] == nil then 
 				local str = "Pokemon: " .. id .. ". IVs: "

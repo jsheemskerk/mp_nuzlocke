@@ -1,0 +1,31 @@
+Block 1
+1: 31 xxxxxxxxxxxxxxxx|xxxxxxxxxxxxxxxx 0
+      ------ITEM------|-------ID-------
+2: 31 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 0
+      ---------------EXP--------------
+3: 31 xxxxxxxxxxxxxxxx|xx|xx|xx|xx|xxxxxxxx 0
+      -------??-------|P4|P3|P2|P1|-FRIEND-
+
+Block 2
+1: 31 xxxxxxxxxxxxxxxx|xxxxxxxxxxxxxxxx 0
+      -----MOVE-2-----|-----MOVE-1-----
+2: 31 xxxxxxxxxxxxxxxx|xxxxxxxxxxxxxxxx 0
+      -----MOVE-4-----|-----MOVE-3-----
+3: 31 xxxxxxxx|xxxxxxxx|xxxxxxxx|xxxxxxxx 0
+      --PP-4--|--PP-3--|--PP-2--|--PP-1-
+
+Block 3
+1: 31 xxxxxxxx|xxxxxxxx|xxxxxxxx|xxxxxxxx 0
+      --EV-4--|--EV-3--|--EV-2--|--EV-1--
+2: 31 xxxxxxxx|xxxxxxxx|xxxxxxxx|xxxxxxxx 0
+      -COND-2-|-COND-1-|--EV-6--|--EV-5--
+1: 31 xxxxxxxx|xxxxxxxx|xxxxxxxx|xxxxxxxx 0
+      -COND-6-|-COND-5-|-COND-4-|-COND-3-
+
+Block 4
+1: 31 x|xxxx|xxxx|xxxxxxx|xxxxxxxx|xxxx|xxxx 0
+      G|BALL|GAME|--LVL--|-LOCATN-|PKRS|DAYS
+2: 31 x|x|xxxxx|xxxxx|xxxxx|xxxxx|xxxxx|xxxxx 0
+      A|E|-IV6-|-IV5-|-IV4-|-IV3-|-IV2-|-IV1-
+3: 31 x|xxxxxxxxxxx|x|x|x|x|x|xxx|xxx|xxx|xxx|xxx 0
+      O|--MISCRBN--|E|A|V|W|C|RB5|RB4|RB3|RB2|RB1

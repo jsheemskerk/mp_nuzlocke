@@ -154,7 +154,7 @@ function get_party_data()
 
 		if id ~= 0 then
 			if hp == 0 and past_hps[slot] ~= 0 and id == past_ids[slot] then
-				http.request("http://joran.fun/db/died.php?pindex=" .. id)
+				http.request("http://joran.fun/db/died.php?pid=" .. personality)
 			end
 			if past_ids[slot] == 0 then
 				local poke_data = [[{
@@ -163,7 +163,6 @@ function get_party_data()
 					"pindex": ]] .. id .. [[,
 					"nick": "]] .. nick .. [[",
 					"lvl": ]] .. lvl .. [[,
-					"died": "]] .. died .. [[",
 					"hpiv": ]] .. ivs[1] .. [[,
 					"atkiv": ]] .. ivs[2] .. [[,
 					"defiv": ]] .. ivs[3] .. [[,

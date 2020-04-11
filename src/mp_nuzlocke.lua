@@ -127,38 +127,43 @@ function update()
 		local slot_addr = start_addr + (slot - 1) * offsets["slot"]
 		local pid = read_dword(slot_addr)
 		local tid = read_dword(slot_addr + offsets["tid"])
-		local lvl = read_byte(slot_addr + offsets["lvl"])
 		local hp = read_word(slot_addr + offsets["hp"])
+		local lvl = read_byte(slot_addr + offsets["lvl"])
 		local data = decrypt_data(slot_addr, pid, tid)
-		if party[slot] == nil and pid ~= 0 then
-			local pindex = get_bits(data[1][1], 0, 16)
-			local tname = ""
-			for i = 1, 7 do
-				tname = tname .. to_ascii(read_byte(slot_addr + offsets["tname"] + (i - 1)))
-			end
-			local nick = ""
-			for i = 1, 10 do
-				nick = nick .. to_ascii(read_byte(slot_addr + offsets["nick"] + (i - 1)))
-			end
-			local ivs = {
-				get_bits(data[4][2], 0, 5), get_bits(data[4][2], 5, 5),
-				get_bits(data[4][2], 10, 5), get_bits(data[4][2], 20, 5),
-				get_bits(data[4][2], 25, 5), get_bits(data[4][2], 15, 5)
-			}
+		if pid ~= 0 then
+			if party[slot] == nil then
+				local pindex = get_bits(data[1][1], 0, 16)
+				local tname = ""
+				for i = 1, 7 do
+					tname = tname .. to_ascii(read_byte(slot_addr + offsets["tname"] + (i - 1)))
+				end
+				local nick = ""
+				for i = 1, 10 do
+					nick = nick .. to_ascii(read_byte(slot_addr + offsets["nick"] + (i - 1)))
+				end
+				local ivs = {
+					get_bits(data[4][2], 0, 5), get_bits(data[4][2], 5, 5),
+					get_bits(data[4][2], 10, 5), get_bits(data[4][2], 20, 5),
+					get_bits(data[4][2], 25, 5), get_bits(data[4][2], 15, 5)
+				}
 
-			party[slot] = {
-				["pid"] = pid, ["tid"] = tid, ["tname"] = tname,
-				["pindex"] = pindex, ["nick"] = nick, ["lvl"] = lvl, ["hp"] = hp,
-				["hpiv"] = ivs[1], ["atkiv"] = ivs[2], ["defiv"] = ivs[3], 
-				["spaiv"] = ivs[4], ["spdiv"] = ivs[5], ["speiv"] = ivs[6], 
-			}
-			post_poke(party[slot])
-		elseif party[slot] ~= nil then
-			if hp == 0 and party[slot].hp ~= 0 and pid == party[slot].pid then
-				http.request("http://joran.fun/db/died.php?pid=" .. pid)
+				party[slot] = {
+					["pid"] = pid, ["tid"] = tid, ["tname"] = tname,
+					["pindex"] = pindex, ["nick"] = nick, ["lvl"] = lvl, ["hp"] = hp,
+					["hpiv"] = ivs[1], ["atkiv"] = ivs[2], ["defiv"] = ivs[3], 
+					["spaiv"] = ivs[4], ["spdiv"] = ivs[5], ["speiv"] = ivs[6], 
+				}
+				post_poke(party[slot])
 			end
-			-- TODO: update level and nickname.
+			-- TODO: update nickname; implement correct swapping behaviour.
+			if hp == 0 and party[slot].hp ~= 0 and pid == party[slot].pid then
+				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&died")
+			end
+			if lvl ~= party[slot].lvl and pid == party[slot].pid then
+				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&lvl=" .. lvl)
+			end
 			party[slot].hp = hp
+			party[slot].lvl = lvl
 		end
 	end
 end

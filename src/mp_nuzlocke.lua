@@ -33,13 +33,6 @@ offsets = {
 }
 pokes = {}
 
--- Prints a value when 'D' is pressed.
-function debug(value)
-	if input.get()["D"] then
-		print(value)
-	end
-end
-
 -- Decrypts the data for a certain pokemon.
 function decrypt_data(slot_addr, pid, tid)
 	local data = {}
@@ -70,7 +63,7 @@ end
 function http_post(url, data)
 end
 
--- Posts the pokemon in the given slot to the database.
+-- Posts a pokemon to the database.
 function post_poke(poke)
 	local data = [[{
 		"pid": ]] .. poke.pid .. [[,
@@ -104,7 +97,6 @@ function post_poke(poke)
 	end
 end
 
-
 -- Returns the ascii value associated with a certain byte.
 function to_ascii(byte)
 	if byte >= 0xA1 and byte <= 0xAA then
@@ -120,7 +112,7 @@ function to_ascii(byte)
 	end
 end
 
--- Updates the database as required.
+-- Updates the database if required.
 function update()
 	local start_addr = 0x20244EC
 	for slot = 1, 6 do
@@ -155,7 +147,6 @@ function update()
 				}
 				post_poke(pokes[pid])
 			end
-			-- TODO: update nickname.
 			if hp == 0 and pokes[pid].hp ~= 0 then
 				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&died")
 			end

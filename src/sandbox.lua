@@ -114,8 +114,6 @@ function get_party_data()
 		local maxhp = read_word(slot_ptr + 88)
 		local lvl = read_byte(slot_ptr + 84)
 
-		local died = "false"
-
 		local block_order = block_orders[(personality % 24) + 1]
 		local block_offs = {}
 		for i = 1, 4 do

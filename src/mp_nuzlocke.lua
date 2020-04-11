@@ -31,7 +31,7 @@ offsets = {
 	["hp"] = 86,
 	["slot"] = 100
 }
-party = {}
+pokes = {}
 
 -- Prints a value when 'D' is pressed.
 function debug(value)
@@ -126,20 +126,20 @@ function update()
 	for slot = 1, 6 do
 		local slot_addr = start_addr + (slot - 1) * offsets["slot"]
 		local pid = read_dword(slot_addr)
-		local tid = read_dword(slot_addr + offsets["tid"])
-		local hp = read_word(slot_addr + offsets["hp"])
-		local lvl = read_byte(slot_addr + offsets["lvl"])
-		local data = decrypt_data(slot_addr, pid, tid)
 		if pid ~= 0 then
-			if party[slot] == nil then
+			local hp = read_word(slot_addr + offsets["hp"])
+			local lvl = read_byte(slot_addr + offsets["lvl"])
+			local nick = ""
+			for i = 1, 10 do
+				nick = nick .. to_ascii(read_byte(slot_addr + offsets["nick"] + (i - 1)))
+			end
+			if pokes[pid] == nil then
+				local tid = read_dword(slot_addr + offsets["tid"])
+				local data = decrypt_data(slot_addr, pid, tid)
 				local pindex = get_bits(data[1][1], 0, 16)
 				local tname = ""
 				for i = 1, 7 do
 					tname = tname .. to_ascii(read_byte(slot_addr + offsets["tname"] + (i - 1)))
-				end
-				local nick = ""
-				for i = 1, 10 do
-					nick = nick .. to_ascii(read_byte(slot_addr + offsets["nick"] + (i - 1)))
 				end
 				local ivs = {
 					get_bits(data[4][2], 0, 5), get_bits(data[4][2], 5, 5),
@@ -147,23 +147,27 @@ function update()
 					get_bits(data[4][2], 25, 5), get_bits(data[4][2], 15, 5)
 				}
 
-				party[slot] = {
+				pokes[pid] = {
 					["pid"] = pid, ["tid"] = tid, ["tname"] = tname,
 					["pindex"] = pindex, ["nick"] = nick, ["lvl"] = lvl, ["hp"] = hp,
 					["hpiv"] = ivs[1], ["atkiv"] = ivs[2], ["defiv"] = ivs[3], 
 					["spaiv"] = ivs[4], ["spdiv"] = ivs[5], ["speiv"] = ivs[6], 
 				}
-				post_poke(party[slot])
+				post_poke(pokes[pid])
 			end
-			-- TODO: update nickname; implement correct swapping behaviour.
-			if hp == 0 and party[slot].hp ~= 0 and pid == party[slot].pid then
+			-- TODO: update nickname.
+			if hp == 0 and pokes[pid].hp ~= 0 then
 				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&died")
 			end
-			if lvl ~= party[slot].lvl and pid == party[slot].pid then
+			if lvl ~= pokes[pid].lvl then
 				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&lvl=" .. lvl)
 			end
-			party[slot].hp = hp
-			party[slot].lvl = lvl
+			if nick ~= pokes[pid].nick then
+				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&nick=" .. nick)
+			end
+			pokes[pid].hp = hp
+			pokes[pid].lvl = lvl
+			pokes[pid].nick = nick
 		end
 	end
 end

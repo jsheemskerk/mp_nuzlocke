@@ -59,39 +59,21 @@ function get_bits(bit_str, loc, nbits)
 	return bit.rshift(bit_str, loc) % bit.lshift(1, nbits)
 end
 
--- Posts data to an URL via a HTTP request.
-function http_post(url, data)
-end
-
--- Posts a pokemon to the database.
-function post_poke(poke)
-	local data = [[{
-		"pid": ]] .. poke.pid .. [[,
-		"tname": "]] .. poke.tname .. [[",
-		"pindex": ]] .. poke.pindex .. [[,
-		"nick": "]] .. poke.nick .. [[",
-		"lvl": ]] .. poke.lvl .. [[,
-		"hpiv": ]] .. poke.hpiv .. [[,
-		"atkiv": ]] .. poke.atkiv .. [[,
-		"defiv": ]] .. poke.defiv .. [[,
-		"spaiv": ]] .. poke.spaiv .. [[,
-		"spdiv": ]] .. poke.spdiv .. [[,
-		"speiv": ]] .. poke.speiv .. [[
-	}]]
-
+-- Posts pokemon data to the database.
+function post_poke(poke_data, nick)
 	local response = {}
 	http.request{
 		url = "http://joran.fun/db/postpokemon.php",
 		method = "POST",
 		headers = {
 			["Content-Type"] = "application/json",
-			["Content-Length"] = data:len()
+			["Content-Length"] = poke_data:len()
 		},
-		source = ltn12.source.string(data),
+		source = ltn12.source.string(poke_data),
 		sink = ltn12.sink.table(response)
 	}
 	if string.match(table.concat(response), "duplicate key") then
-		print(poke.nick .. " is already in the database.")
+		print(nick .. " is already in the database.")
 	else
 		print("Response = " .. table.concat(response))
 	end
@@ -139,13 +121,21 @@ function update()
 					get_bits(data[4][2], 25, 5), get_bits(data[4][2], 15, 5)
 				}
 
-				pokes[pid] = {
-					["pid"] = pid, ["tid"] = tid, ["tname"] = tname,
-					["pindex"] = pindex, ["nick"] = nick, ["lvl"] = lvl, ["hp"] = hp,
-					["hpiv"] = ivs[1], ["atkiv"] = ivs[2], ["defiv"] = ivs[3], 
-					["spaiv"] = ivs[4], ["spdiv"] = ivs[5], ["speiv"] = ivs[6], 
-				}
-				post_poke(pokes[pid])
+				local poke_data = [[{
+					"pid": ]] .. pid .. [[,
+					"tname": "]] .. tname .. [[",
+					"pindex": ]] .. pindex .. [[,
+					"nick": "]] .. nick .. [[",
+					"lvl": ]] .. lvl .. [[,
+					"hpiv": ]] .. ivs[1] .. [[,
+					"atkiv": ]] .. ivs[2] .. [[,
+					"defiv": ]] .. ivs[3] .. [[,
+					"spaiv": ]] .. ivs[4] .. [[,
+					"spdiv": ]] .. ivs[5] .. [[,
+					"speiv": ]] .. ivs[6] .. [[
+				}]]
+				pokes[pid] = {["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick}
+				post_poke(poke_data, nick)
 			end
 			if hp == 0 and pokes[pid].hp ~= 0 then
 				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&died")
@@ -156,9 +146,7 @@ function update()
 			if nick ~= pokes[pid].nick then
 				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&nick=" .. nick)
 			end
-			pokes[pid].hp = hp
-			pokes[pid].lvl = lvl
-			pokes[pid].nick = nick
+			pokes[pid] = {["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick}
 		end
 	end
 end

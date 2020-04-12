@@ -101,6 +101,9 @@ function update()
 		local slot_addr = start_addr + (slot - 1) * offsets["slot"]
 		local pid = read_dword(slot_addr)
 		if pid ~= 0 then
+			local tid = read_dword(slot_addr + offsets["tid"])
+			local data = decrypt_data(slot_addr, pid, tid)
+			local pindex = get_bits(data[1][1], 0, 16)
 			local hp = read_word(slot_addr + offsets["hp"])
 			local lvl = read_byte(slot_addr + offsets["lvl"])
 			local nick = ""
@@ -108,9 +111,6 @@ function update()
 				nick = nick .. to_ascii(read_byte(slot_addr + offsets["nick"] + (i - 1)))
 			end
 			if pokes[pid] == nil then
-				local tid = read_dword(slot_addr + offsets["tid"])
-				local data = decrypt_data(slot_addr, pid, tid)
-				local pindex = get_bits(data[1][1], 0, 16)
 				local tname = ""
 				for i = 1, 7 do
 					tname = tname .. to_ascii(read_byte(slot_addr + offsets["tname"] + (i - 1)))
@@ -134,7 +134,7 @@ function update()
 					"spdiv": ]] .. ivs[5] .. [[,
 					"speiv": ]] .. ivs[6] .. [[
 				}]]
-				pokes[pid] = {["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick}
+				pokes[pid] = {["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick, ["pindex"] = pindex}
 				post_poke(poke_data, nick)
 			end
 			if hp == 0 and pokes[pid].hp ~= 0 then
@@ -146,7 +146,11 @@ function update()
 			if nick ~= pokes[pid].nick then
 				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&nick=" .. nick)
 			end
-			pokes[pid] = {["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick}
+			if pindex ~= pokes[pid].pindex then
+				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&pindex=" .. pindex)
+				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&nick=" .. nick)
+			end
+			pokes[pid] = {["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick, ["pindex"] = pindex}
 		end
 	end
 end

@@ -63,7 +63,7 @@ end
 function post_poke(poke_data, nick)
 	local response = {}
 	http.request{
-		url = "http://joran.fun/db/postpokemon.php",
+		url = "http://www.joran.fun/nuzlocke/db/postpokemon.php",
 		method = "POST",
 		headers = {
 			["Content-Type"] = "application/json",
@@ -166,20 +166,20 @@ function update()
 				local loc_died, _ = string.gsub(to_location(get_bits(opp_data[4][1], 8, 8)), " ", "%%20")
 				local response = {}
 				http.request{
-					url = "http://joran.fun/db/update.php?pid=" .. pid .. "&loc_died=" .. loc_died .. "&died",
+					url = "http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&loc_died=" .. loc_died .. "&died",
 					sink = ltn12.sink.table(response)
 				}
 				print("Died_response: " .. table.concat(response))
 			end
 			if lvl ~= pokes[pid].lvl then -- Level up
-				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&lvl=" .. lvl)
+				http.request("http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&lvl=" .. lvl)
 			end
 			if nick ~= pokes[pid].nick then -- Name change
-				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&nick=" .. nick)
+				http.request("http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&nick=" .. nick)
 			end
 			if pindex ~= pokes[pid].pindex then -- Evolution
-				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&pindex=" .. pindex)
-				http.request("http://joran.fun/db/update.php?pid=" .. pid .. "&nick=" .. nick)
+				http.request("http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&pindex=" .. pindex)
+				http.request("http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&nick=" .. nick)
 			end
 			pokes[pid] = {["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick, ["pindex"] = pindex}
 		end

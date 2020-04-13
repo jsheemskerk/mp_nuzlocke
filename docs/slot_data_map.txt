@@ -3,8 +3,8 @@ Block 1
       ------ITEM------|-------ID-------
 2: 31 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 0
       ---------------EXP--------------
-3: 31 xxxxxxxxxxxxxxxx|xx|xx|xx|xx|xxxxxxxx 0
-      -------??-------|P4|P3|P2|P1|-FRIEND-
+3: 31 xxxxxxxxxxxxxxxx|xxxxxxxx|xx|xx|xx|xx 0
+      -------??-------|-FRIEND-|P4|P3|P2|P1
 
 Block 2
 1: 31 xxxxxxxxxxxxxxxx|xxxxxxxxxxxxxxxx 0

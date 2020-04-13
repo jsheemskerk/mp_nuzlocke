@@ -16,7 +16,6 @@ read_byte = memory.readbyteunsigned
 
 -- History features
 pokes = {}
-prev_opp_pid = -1
 
 -- Decrypts the data for a certain pokemon.
 function decrypt_data(slot_addr, pid, tid)
@@ -110,7 +109,6 @@ function to_location(byte)
 	end
 end
 
--- 3616154239 = wild
 -- Updates the database if required.
 function update()
 	local party_addr = 0x20244EC

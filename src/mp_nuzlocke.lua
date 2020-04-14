@@ -38,6 +38,16 @@ function decrypt_data(slot_addr, pid, tid)
 	return data
 end
 
+-- Read hex dump at certain location in memory
+-- Note: little endian format!
+function as_hex(loc, amount)
+	local output = ""
+	for i=0, (amount -1) do
+		output = output .. string.format("%02X", read_byte(loc+i)) .. " "
+	end
+	return output
+end
+
 -- Represents a dword as a MSB-first bit string, divided into blocks.
 function as_bits(dword, block_len)
 	local bits = ""

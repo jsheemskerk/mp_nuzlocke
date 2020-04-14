@@ -123,9 +123,12 @@ end
 function update()
 	local party_addr = 0x20244EC
 	local opp_addr = 0x02024744
+	local basestats_addr = 0x083203E8  --general pokemon info, includes more than just base stats
+	
 	local opp_pid = read_dword(opp_addr)
 	local opp_tid = read_dword(opp_addr + offsets["tid"])
 	local opp_data = decrypt_data(opp_addr, opp_pid, opp_tid)
+	
 	for slot = 1, 6 do
 		local slot_addr = party_addr + (slot - 1) * offsets["slot"]
 		local pid = read_dword(slot_addr)
@@ -135,10 +138,23 @@ function update()
 			local pindex = get_bits(data[1][1], 0, 16)
 			local hp = read_word(slot_addr + offsets["hp"])
 			local lvl = read_byte(slot_addr + offsets["lvl"])
+			
+			--gender
+			local genderbyte = read_byte(slot_addr)
+			local basegenderbyte = read_byte(basestats_addr + 16 + (pindex - 1) * 28)
+			local gender = 0
+			if (basegenderbyte == 0xFF) then gender = 0 --genderless
+			elseif (basegenderbyte == 0xFE) then gender = 2 --female
+			elseif (genderbyte >= basegenderbyte) then gender = 1 --male
+			else gender = 2
+			end
+
+
 			local nick = ""
 			for i = 1, 10 do
 				nick = nick .. to_ascii(read_byte(slot_addr + offsets["nick"] + (i - 1)))
 			end
+			
 			local nature = natures[(pid % 25) + 1]
 			if pokes[pid] == nil then
 				local tname = ""
@@ -165,7 +181,9 @@ function update()
 					"spdiv": ]] .. ivs[5] .. [[,
 					"speiv": ]] .. ivs[6] .. [[,
 					"nature": "]] .. nature .. [[",
-					"loc_met": "]] .. loc_met .. [["
+					"loc_met": "]] .. loc_met .. [[",
+					"gender": ]] .. gender .. [[
+
 				}]]
 				pokes[pid] = {["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick, ["pindex"] = pindex}
 				if not (loc_met == "Petalburg City" and pindex == 288) then -- Wally's Zigzagoon

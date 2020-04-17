@@ -134,7 +134,6 @@ function update()
 	curr = input.get()
 	if curr["Q"] and not prev["Q"] then
 		print_ingame_time()
-		print(igt_seconds())
 	end
 	prev = input.get()
 
@@ -183,6 +182,17 @@ function update()
 					get_bits(data[4][2], 10, 5), get_bits(data[4][2], 20, 5),
 					get_bits(data[4][2], 25, 5), get_bits(data[4][2], 15, 5)
 				}
+
+				local evs = {
+					get_bits(data[3][1], 0, 8),
+					get_bits(data[3][1], 8, 8),
+					get_bits(data[3][1], 16, 8),
+					get_bits(data[3][1], 24, 8),
+					get_bits(data[3][2], 0, 8),
+					get_bits(data[3][2], 8, 8)
+				}
+				print(evs)
+
 				local loc_met = to_location(get_bits(data[4][1], 8, 8))
 
 				local poke_data = [[{
@@ -200,6 +210,12 @@ function update()
 					"nature": "]] .. nature .. [[",
 					"loc_met": "]] .. loc_met .. [[",
 					"time_met": "]] .. igt_seconds() .. [[",
+					"hpev": ]] .. evs[1] .. [[,
+					"atkev": ]] .. evs[2] .. [[,
+					"defev": ]] .. evs[3] .. [[,
+					"speev": ]] .. evs[4] .. [[,
+					"spaev": ]] .. evs[5] .. [[,
+					"spdev": ]] .. evs[6] .. [[,
 					"gender": ]] .. gender .. [[
 
 				}]]

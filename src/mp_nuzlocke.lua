@@ -38,14 +38,13 @@ function decrypt_data(slot_addr, pid, tid)
 	return data
 end
 
--- Read hex dump at certain location in memory
--- Note: little endian format!
-function as_hex(loc, amount)
-	local output = ""
-	for i=0, (amount -1) do
-		output = output .. string.format("%02X", read_byte(loc+i)) .. " "
-	end
-	return output
+
+function print_ingame_time()
+	local base = 0x02024a02
+	local offset = read_byte(0x2039dd8)
+	print("Hours: " .. read_word(base + offset))
+	print("Minutes: " .. read_byte(base + offset + 2))
+	print("Seconds: " .. read_byte(base + offset + 3))
 end
 
 -- Represents a dword as a MSB-first bit string, divided into blocks.
@@ -120,7 +119,14 @@ function to_location(byte)
 end
 
 -- Updates the database if required.
+prev = input.get()
 function update()
+	curr = input.get()
+	if curr["Q"] and not prev["Q"] then
+		print_ingame_time()
+	end
+	prev = input.get()
+
 	local party_addr = 0x20244EC
 	local opp_addr = 0x02024744
 	local basestats_addr = 0x083203E8  --general pokemon info, includes more than just base stats

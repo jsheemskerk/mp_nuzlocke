@@ -39,12 +39,22 @@ function decrypt_data(slot_addr, pid, tid)
 end
 
 
+-- Helper/debug function that prints out the current time to the console.
 function print_ingame_time()
 	local base = 0x02024a02
 	local offset = read_byte(0x2039dd8)
 	print("Hours: " .. read_word(base + offset))
 	print("Minutes: " .. read_byte(base + offset + 2))
 	print("Seconds: " .. read_byte(base + offset + 3))
+end
+
+-- Returns the current ingame time in seconds.
+function igt_seconds()
+	local base = 0x02024a02
+	local offset = read_byte(0x2039dd8)
+	return 3600 * read_word(base + offset) +
+	       60 * read_byte(base + offset + 2) +
+		   read_byte(base + offset + 3)
 end
 
 -- Represents a dword as a MSB-first bit string, divided into blocks.
@@ -124,6 +134,7 @@ function update()
 	curr = input.get()
 	if curr["Q"] and not prev["Q"] then
 		print_ingame_time()
+		print(igt_seconds())
 	end
 	prev = input.get()
 
@@ -188,6 +199,7 @@ function update()
 					"speiv": ]] .. ivs[6] .. [[,
 					"nature": "]] .. nature .. [[",
 					"loc_met": "]] .. loc_met .. [[",
+					"time_met": "]] .. igt_seconds() .. [[",
 					"gender": ]] .. gender .. [[
 
 				}]]
@@ -200,7 +212,7 @@ function update()
 				local loc_died, _ = string.gsub(to_location(get_bits(opp_data[4][1], 8, 8)), " ", "%%20")
 				local response = {}
 				http.request{
-					url = "http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&loc_died=" .. loc_died .. "&died",
+					url = "http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&loc_died=" .. loc_died .. "&time_died=" .. igt_seconds() .. "&died" ,
 					sink = ltn12.sink.table(response)
 				}
 				print("Died_response: " .. table.concat(response))

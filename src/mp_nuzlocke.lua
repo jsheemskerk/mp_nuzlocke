@@ -191,7 +191,8 @@ function update()
 					get_bits(data[3][2], 0, 8),
 					get_bits(data[3][2], 8, 8)
 				}
-				print(evs)
+
+				local happiness = get_bits(data[1][3], 8, 8);
 
 				local loc_met = to_location(get_bits(data[4][1], 8, 8))
 
@@ -216,8 +217,8 @@ function update()
 					"speev": ]] .. evs[4] .. [[,
 					"spaev": ]] .. evs[5] .. [[,
 					"spdev": ]] .. evs[6] .. [[,
-					"gender": ]] .. gender .. [[
-
+					"gender": ]] .. gender .. [[,
+					"happiness": ]] .. happiness .. [[
 				}]]
 				pokes[pid] = {["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick, ["pindex"] = pindex}
 				if not (loc_met == "Petalburg City" and pindex == 288) then -- Wally's Zigzagoon

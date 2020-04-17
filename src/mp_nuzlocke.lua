@@ -165,6 +165,16 @@ function update()
 			else gender = 2
 			end
 
+			local evs = {
+				get_bits(data[3][1], 0, 8),
+				get_bits(data[3][1], 8, 8),
+				get_bits(data[3][1], 16, 8),
+				get_bits(data[3][1], 24, 8),
+				get_bits(data[3][2], 0, 8),
+				get_bits(data[3][2], 8, 8)
+			}
+
+			local happiness = get_bits(data[1][3], 8, 8);
 
 			local nick = ""
 			for i = 1, 10 do
@@ -183,16 +193,6 @@ function update()
 					get_bits(data[4][2], 25, 5), get_bits(data[4][2], 15, 5)
 				}
 
-				local evs = {
-					get_bits(data[3][1], 0, 8),
-					get_bits(data[3][1], 8, 8),
-					get_bits(data[3][1], 16, 8),
-					get_bits(data[3][1], 24, 8),
-					get_bits(data[3][2], 0, 8),
-					get_bits(data[3][2], 8, 8)
-				}
-
-				local happiness = get_bits(data[1][3], 8, 8);
 
 				local loc_met = to_location(get_bits(data[4][1], 8, 8))
 
@@ -234,8 +234,11 @@ function update()
 				}
 				print("Died_response: " .. table.concat(response))
 			end
-			if lvl ~= pokes[pid].lvl then -- Level up
-				http.request("http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&lvl=" .. lvl)
+			if lvl ~= pokes[pid].lvl then -- Level up, also updates EVs and happiness value
+				http.request("http://www.joran.fun/nuzlocke/db/update.php?pid=" .. 
+				pid .. "&lvl=" .. lvl .. "&hpev=" .. evs[1] .. "&atkev=" ..
+				evs[2] .. "&defev=" .. evs[3] .. "&speev=" ..
+				evs[4] .. "&spaev=" .. evs[5] .. "&spdev=" .. evs[6] .. "&happiness=" .. happiness)
 			end
 			if nick ~= pokes[pid].nick then -- Name change
 				http.request("http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&nick=" .. nick)

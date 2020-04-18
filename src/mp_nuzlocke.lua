@@ -145,11 +145,11 @@ function main()
 				else gender = 2
 				end
 
-				local ivs = {
-					get_bits(data[4][2], 0, 5), get_bits(data[4][2], 5, 5),
-					get_bits(data[4][2], 10, 5), get_bits(data[4][2], 15, 5),
-					get_bits(data[4][2], 20, 5), get_bits(data[4][2], 25, 5)
-				}
+				local ivs = '['
+				for i = 1, 5 do
+					ivs = ivs .. get_bits(data[4][2], (i - 1) * 5, 5) .. ','
+				end
+				ivs = ivs .. get_bits(data[4][2], 25, 5) .. ']'
 
 				local poke_data = [[{
 					"pid": ]] .. pid .. [[,
@@ -157,12 +157,7 @@ function main()
 					"pindex": ]] .. pindex .. [[,
 					"nick": "]] .. nick .. [[",
 					"lvl": ]] .. lvl .. [[,
-					"hpiv": ]] .. ivs[1] .. [[,
-					"atkiv": ]] .. ivs[2] .. [[,
-					"defiv": ]] .. ivs[3] .. [[,
-					"speiv": ]] .. ivs[4] .. [[,
-					"spaiv": ]] .. ivs[5] .. [[,
-					"spdiv": ]] .. ivs[6] .. [[,
+					"ivs": ]] .. ivs .. [[,
 					"nature": "]] .. nature .. [[",
 					"loc_met": "]] .. loc_met .. [[",
 					"time_met": "]] .. get_ingame_time() .. [[",

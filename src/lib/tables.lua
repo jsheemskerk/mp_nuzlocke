@@ -1,5 +1,10 @@
 -- Tables required for the MP Nuzlocke script.
 
+addresses = {
+	["party"] = 0x20244EC,
+	["opp_party"] = 0x02024744,
+	["poke_info"] = 0x083203E8
+}
 data_orders = {
 	{0,1,2,3}, {0,1,3,2}, {0,2,1,3}, {0,3,1,2}, {0,2,3,1}, {0,3,2,1},
 	{1,0,2,3}, {1,0,3,2}, {2,0,1,3}, {3,0,1,2}, {2,0,3,1}, {3,0,2,1},
@@ -35,7 +40,9 @@ offsets = {
 	["tid"] = 4,
 	["nick"] = 8,
 	["block"] = 12,
+	["gender"] = 16,
 	["tname"] = 20,
+	["info"] = 28,
 	["data"] = 32,
 	["lvl"] = 84,
 	["hp"] = 86,

@@ -119,7 +119,7 @@ function main()
 
 			local evs = {
 				get_bits(data[3][1], 0, 8), get_bits(data[3][1], 8, 8),
-				get_bits(data[3][1], 16, 8), get_bits(data[3][1], 24, 8),
+				get_bits(data[3][1], 16, 8), get_bits(data[3][2], 24, 8),
 				get_bits(data[3][2], 0, 8), get_bits(data[3][2], 8, 8)
 			}
 
@@ -147,8 +147,8 @@ function main()
 
 				local ivs = {
 					get_bits(data[4][2], 0, 5), get_bits(data[4][2], 5, 5),
-					get_bits(data[4][2], 10, 5), get_bits(data[4][2], 20, 5),
-					get_bits(data[4][2], 25, 5), get_bits(data[4][2], 15, 5)
+					get_bits(data[4][2], 10, 5), get_bits(data[4][2], 15, 5),
+					get_bits(data[4][2], 20, 5), get_bits(data[4][2], 25, 5)
 				}
 
 				local poke_data = [[{
@@ -160,9 +160,9 @@ function main()
 					"hpiv": ]] .. ivs[1] .. [[,
 					"atkiv": ]] .. ivs[2] .. [[,
 					"defiv": ]] .. ivs[3] .. [[,
-					"spaiv": ]] .. ivs[4] .. [[,
-					"spdiv": ]] .. ivs[5] .. [[,
-					"speiv": ]] .. ivs[6] .. [[,
+					"speiv": ]] .. ivs[4] .. [[,
+					"spaiv": ]] .. ivs[5] .. [[,
+					"spdiv": ]] .. ivs[6] .. [[,
 					"nature": "]] .. nature .. [[",
 					"loc_met": "]] .. loc_met .. [[",
 					"time_met": "]] .. get_ingame_time() .. [[",

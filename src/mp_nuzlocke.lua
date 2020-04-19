@@ -102,26 +102,27 @@ function post_poke(poke_data, nick)
 	end
 end
 
--- Main function, which updates the database if required.
-function main()
+-- The script's main function, which updates the database if required.
+function update()
 	for slot = 1, 6 do
+		-- Update each pokemon in the party.
 		local slot_address = addresses["party"] + (slot - 1) * offsets["slot"]
 		local pid = read_dword(slot_address)
 		if pid ~= 0 then
+			-- There is a pokemon in the current slot.
 			local tid = read_dword(slot_address + offsets["tid"])
 			local data = get_decrypted_data(slot_address, pid, tid)
 			local pindex = get_bits(data[1][1], 0, 16)
-
-			local nature = natures[(pid % 25) + 1]
 			local happiness = get_bits(data[1][3], 8, 8);
 			local hp = read_word(slot_address + offsets["hp"])
 			local lvl = read_byte(slot_address + offsets["lvl"])
+			local time = get_ingame_time()
 
-			local evs = {
-				get_bits(data[3][1], 0, 8), get_bits(data[3][1], 8, 8),
-				get_bits(data[3][1], 16, 8), get_bits(data[3][2], 24, 8),
-				get_bits(data[3][2], 0, 8), get_bits(data[3][2], 8, 8)
-			}
+			local evs = ''
+			for i = 1, 4 do
+				evs = evs .. get_bits(data[3][1], (i - 1) * 8, 8) .. ','
+			end
+			evs = evs .. get_bits(data[3][2], 0, 8) .. ',' .. get_bits(data[3][2], 8, 8)
 
 			local nick = ""
 			for i = 1, 10 do
@@ -129,6 +130,8 @@ function main()
 			end
 			
 			if pokes[pid] == nil then
+				-- This pokemon has just been added to the party: post it to the database.
+				local nature = natures[(pid % 25) + 1]
 				local loc_met = get_location(get_bits(data[4][1], 8, 8))
 
 				local tname = ""
@@ -137,19 +140,18 @@ function main()
 				end
 
 				local gender = 0
-				local threshold = read_byte(
+				local g_threshold = read_byte(
 					addresses["poke_info"] + offsets["gender"] + (pindex - 1) * offsets["info"]
 				)
-				if threshold == 0xFE then gender = 2
-				elseif threshold == 0 or get_bits(pid, 0, 8) >= threshold then gender = 1
+				if g_threshold == 0xFE then gender = 2
+				elseif g_threshold == 0 or get_bits(pid, 0, 8) >= g_threshold then gender = 1
 				else gender = 2
 				end
 
-				local ivs = '['
+				local ivs = get_bits(data[4][2], 0, 5)
 				for i = 1, 5 do
-					ivs = ivs .. get_bits(data[4][2], (i - 1) * 5, 5) .. ','
+					ivs = ivs .. ',' .. get_bits(data[4][2], i * 5, 5)
 				end
-				ivs = ivs .. get_bits(data[4][2], 25, 5) .. ']'
 
 				local poke_data = [[{
 					"pid": ]] .. pid .. [[,
@@ -157,26 +159,25 @@ function main()
 					"pindex": ]] .. pindex .. [[,
 					"nick": "]] .. nick .. [[",
 					"lvl": ]] .. lvl .. [[,
-					"ivs": ]] .. ivs .. [[,
+					"ivs": []] .. ivs .. [[],
 					"nature": "]] .. nature .. [[",
 					"loc_met": "]] .. loc_met .. [[",
-					"time_met": "]] .. get_ingame_time() .. [[",
-					"hpev": ]] .. evs[1] .. [[,
-					"atkev": ]] .. evs[2] .. [[,
-					"defev": ]] .. evs[3] .. [[,
-					"speev": ]] .. evs[4] .. [[,
-					"spaev": ]] .. evs[5] .. [[,
-					"spdev": ]] .. evs[6] .. [[,
 					"gender": ]] .. gender .. [[,
+					"time_met": "]] .. time .. [[",
+					"evs": []] .. evs .. [[],
 					"happiness": ]] .. happiness .. [[
 				}]]
 
-				pokes[pid] = {["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick, ["pindex"] = pindex}
-				if not (loc_met == "Petalburg City" and pindex == 288) then -- Wally's Zigzagoon
+				if not (loc_met == "Petalburg City" and pindex == 288) then
+					-- The pokemon isn't Wally's Zigzagoon.
 					post_poke(poke_data, nick)
 				end
+
+				pokes[pid] = {["pindex"] = pindex, ["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick}
 			end
-			if hp == 0 and pokes[pid].hp ~= 0 then -- Died
+
+			if hp == 0 and pokes[pid].hp ~= 0 then
+				-- This pokemon has just fainted: update the associated stats.
 				local opp_pid = read_dword(addresses["opp_party"])
 				local opp_tid = read_dword(addresses["opp_party"] + offsets["tid"])
 				local opp_data = get_decrypted_data(addresses["opp_party"], opp_pid, opp_tid)
@@ -185,26 +186,23 @@ function main()
 				)
 				http.request(
 					"http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&loc_died=" ..
-					loc_died .. "&time_died=" .. get_ingame_time() .. "&died"
+					loc_died .. "&time_died=" .. time .. "&died"
 				)
 			end
-			if lvl ~= pokes[pid].lvl then -- Level up, also updates EVs and happiness
+
+			if lvl ~= pokes[pid].lvl or pindex ~= pokes[pid].pindex or nick ~= pokes[pid].nick then
+				-- Either the level, index or nickname has changed: update all dynamic stats.
 				http.request(
 					"http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&lvl=" .. lvl ..
-					"&hpev=" .. evs[1] .. "&atkev=" .. evs[2] .. "&defev=" .. evs[3] .. "&speev=" ..
-					evs[4] .. "&spaev=" .. evs[5] .. "&spdev=" .. evs[6] .. "&happiness=" .. happiness
-				)
-			end
-			if pindex ~= pokes[pid].pindex or nick ~= pokes[pid].nick then -- Evolution, name change
-				http.request(
-					"http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&nick=" ..nick ..
+					"&evs=" .. evs .. "&happiness=" .. happiness .. "&nick=" .. nick ..
 					"&pindex=" .. pindex
 				)
 			end
-			pokes[pid] = {["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick, ["pindex"] = pindex}
+
+			pokes[pid] = {["pindex"] = pindex, ["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick}
 		end
 	end
 end
 
 -- Applies the main function on a per-frame basis.
-gui.register(main)
+gui.register(update)

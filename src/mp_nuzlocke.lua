@@ -181,12 +181,13 @@ function update()
 				local opp_pid = read_dword(addresses["opp_party"])
 				local opp_tid = read_dword(addresses["opp_party"] + offsets["tid"])
 				local opp_data = get_decrypted_data(addresses["opp_party"], opp_pid, opp_tid)
+				local opp_pindex = get_bits(opp_data[1][1], 0, 16)
 				local loc_died, _ = string.gsub(
 					get_location(get_bits(opp_data[4][1], 8, 8)), " ", "%%20"
 				)
 				http.request(
 					"http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&loc_died=" ..
-					loc_died .. "&time_died=" .. time .. "&died"
+					loc_died .. "&time_died=" .. time .. "&opp=" .. opp_pindex .. "&died"
 				)
 			end
 

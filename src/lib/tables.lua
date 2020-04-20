@@ -29,11 +29,11 @@ locations = {
 	"Ingame Trade", "Fateful Encounter"
 }
 natures = {
-	"Hardy","Lonely","Brave","Adamant","Naughty",
-	"Bold","Docile","Relaxed","Impish","Lax",
-	"Timid","Hasty","Serious","Jolly","Naive",
-	"Modest","Mild","Quiet","Bashful","Rash",
-	"Calm","Gentle","Sassy","Careful","Quirky"
+	"\"Hardy\"", "\"Lonely\",0,1", "\"Brave\",0,2", "\"Adamant\",0,3", "\"Naughty\",0,4",
+	"\"Bold\",1,0", "\"Docile\"", "\"Relaxed\",1,2", "\"Impish\",1,3", "\"Lax\",1,4",
+	"\"Timid\",2,0", "\"Hasty\",2,1", "\"Serious\"", "\"Jolly\",2,3", "\"Naive\",2,4",
+	"\"Modest\",3,0", "\"Mild\",3,1", "\"Quiet\",3,2", "\"Bashful\"", "\"Rash\",3,4",
+	"\"Calm\",4,0", "\"Gentle\",4,1", "\"Sassy\",4,2", "\"Careful\",4,3", "\"Quirky\""
 }
 offsets = {
 	["dword"] = 4,

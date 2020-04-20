@@ -160,7 +160,7 @@ function update()
 					"nick": "]] .. nick .. [[",
 					"lvl": ]] .. lvl .. [[,
 					"ivs": []] .. ivs .. [[],
-					"nature": "]] .. nature .. [[",
+					"nature": []] .. nature .. [[],
 					"loc_met": "]] .. loc_met .. [[",
 					"gender": ]] .. gender .. [[,
 					"time_met": "]] .. time .. [[",

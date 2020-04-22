@@ -17,13 +17,13 @@ read_byte = memory.readbyteunsigned
 -- Initialisation/local storage of data
 local pokes = {}
 local badges = 0
-local currentloc = 0
+local currentloc = ""
 local frames = 1
 
 
--- TODO
+-- Gets the player's current location
 function get_current_map()
-	return 0
+	return get_location(read_byte(0x203732c))
 end
 
 -- TODO
@@ -139,7 +139,7 @@ function update()
 			frames = 0
 			badges = get_badges()
 			currentloc = get_current_map()
-			http.request("http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" .. "Joran" .. "&time=" .. get_ingame_time() .. "&loc=" .. currentloc .. "&badges=" .. badges)
+			http.request("http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" .. "Joran" .. "&time=" .. get_ingame_time() .. '&loc=' .. string.gsub(currentloc, " ", "%%20") .. '&badges=' .. badges)
 			print("updated trainer")
 		end
 	end

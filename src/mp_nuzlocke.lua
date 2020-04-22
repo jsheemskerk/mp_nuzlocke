@@ -14,8 +14,26 @@ read_dword = memory.readdwordunsigned
 read_word = memory.readwordunsigned
 read_byte = memory.readbyteunsigned
 
--- Stores a local representation of the trainer's pokemon.
-pokes = {}
+-- Initialisation/local storage of data
+local pokes = {}
+local badges = 0
+local currentloc = 0
+local frames = 1
+
+
+-- TODO
+function get_current_map()
+	return 0
+end
+
+-- TODO
+function get_pbank_stuff()
+	local base = 0x2fe97ac
+	local offset = read_byte(0x2039dd8)
+	
+	-- Should(?) point to start of pokemon in box
+	local addr = base + offset
+end
 
 -- Returns the ascii value associated with a certain byte.
 function get_ascii(byte)
@@ -82,6 +100,16 @@ function get_location(byte)
 	end
 end
 
+
+-- Get current badge count.
+function get_badges()
+	local base = 0x2026d1c
+	local offset = read_byte(0x2039dd8)
+	local addr = base + offset
+	return get_bits(read_byte(addr), 7, 1) + get_bits(read_byte(addr+1),0,1)+ get_bits(read_byte(addr+1),1,1)+ get_bits(read_byte(addr+1),2,1) +
+           get_bits(read_byte(addr+1),3,1)+ get_bits(read_byte(addr+1),4,1)+ get_bits(read_byte(addr+1),5,1)+ get_bits(read_byte(addr+1),6,1)
+end
+
 -- Posts pokemon data to the database.
 function post_poke(poke_data, nick)
 	local response = {}
@@ -104,6 +132,19 @@ end
 
 -- The script's main function, which updates the database if required.
 function update()
+
+	-- Check for changes only every second
+	if (frames % 60 == 0) then
+		if(get_badges() ~= badges or currentloc ~= get_current_map() or frames >= 3600) then
+			frames = 0
+			badges = get_badges()
+			currentloc = get_current_map()
+			http.request("http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" .. "Joran" .. "&time=" .. get_ingame_time() .. "&loc=" .. currentloc .. "&badges=" .. badges)
+			print("updated trainer")
+		end
+	end
+	frames = frames + 1
+
 	for slot = 1, 6 do
 		-- Update each pokemon in the party.
 		local slot_address = addresses["party"] + (slot - 1) * offsets["slot"]

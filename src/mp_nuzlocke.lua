@@ -14,29 +14,16 @@ read_dword = memory.readdwordunsigned
 read_word = memory.readwordunsigned
 read_byte = memory.readbyteunsigned
 
--- Initialisation/local storage of data
-local pokes = {}
-local badges = 0
-local currentloc = ""
+-- Local data storage
 local frames = 1
-
-
--- Gets the player's current location
-function get_current_map()
-	return get_location(read_byte(0x203732c))
-end
-
--- TODO
-function get_pbank_stuff()
-	local base = 0x2fe97ac
-	local offset = read_byte(0x2039dd8)
-	
-	-- Should(?) point to start of pokemon in box
-	local addr = base + offset
-end
+local pokes = {}
+local trainer = {
+	["badges"] = 0,
+	["location"] = "",
+}
 
 -- Returns the ascii value associated with a certain byte.
-function get_ascii(byte)
+function as_ascii(byte)
 	if byte >= 0xA1 and byte <= 0xAA then
 		return string.char(byte - 113)
 	elseif byte == 0xAE then
@@ -50,9 +37,39 @@ function get_ascii(byte)
 	end
 end
 
+-- Returns the location associated with a certain byte.
+function as_location(byte)
+	if byte <= 0x0F then
+		return locations[byte + 1]
+	elseif byte <= 0x31 then
+		return "Route " .. (byte + 85)
+	elseif byte <= 0x57 then
+		return locations[byte - 33]
+	elseif byte <= 0xD4 then
+		return locations[byte - 142]
+	else
+		return locations[byte - 183]
+	end
+end
+
+-- Returns the current number of badges obtained.
+function get_badges()
+	local curr_addr = addresses["badges"] + read_byte(addresses["random_offset"])
+	local n_badges = get_bits(read_byte(curr_addr), 7, 1)
+	for i = 0, 6 do
+		n_badges = n_badges + get_bits(read_byte(curr_addr + 1), i, 1)
+	end
+	return n_badges
+end
+
 -- Returns a number of bits from a certain location in a bit string.
 function get_bits(bit_str, loc, nbits)
 	return bit.rshift(bit_str, loc) % bit.lshift(1, nbits)
+end
+
+-- TODO: Returns the pokemon which are currently boxed.
+function get_boxes()
+	local curr_addr = addresses["boxes"] + read_byte(addresses["random_offset"])
 end
 
 -- Returns the pokemon data at a certain address.
@@ -78,36 +95,16 @@ end
 
 -- Returns the current ingame time in seconds.
 function get_ingame_time()
-	local base = 0x02024a02
-	local offset = read_byte(0x2039dd8)
-	return 3600 * read_word(base + offset) +
-	       60 * read_byte(base + offset + 2) +
-		   read_byte(base + offset + 3)
+	local curr_addr = addresses["time"] + read_byte(addresses["random_offset"])
+	local time_data = read_dword(curr_addr)
+	return 3600 * get_bits(time_data, 0, 16) +
+		   60 * get_bits(time_data, 16, 8) +
+		   get_bits(time_data, 24, 8)
 end
 
--- Returns the location associated with a certain byte.
-function get_location(byte)
-	if byte <= 0x0F then
-		return locations[byte + 1]
-	elseif byte <= 0x31 then
-		return "Route " .. (byte + 85)
-	elseif byte <= 0x57 then
-		return locations[byte - 33]
-	elseif byte <= 0xD4 then
-		return locations[byte - 142]
-	else
-		return locations[byte - 183]
-	end
-end
-
-
--- Get current badge count.
-function get_badges()
-	local base = 0x2026d1c
-	local offset = read_byte(0x2039dd8)
-	local addr = base + offset
-	return get_bits(read_byte(addr), 7, 1) + get_bits(read_byte(addr+1),0,1)+ get_bits(read_byte(addr+1),1,1)+ get_bits(read_byte(addr+1),2,1) +
-           get_bits(read_byte(addr+1),3,1)+ get_bits(read_byte(addr+1),4,1)+ get_bits(read_byte(addr+1),5,1)+ get_bits(read_byte(addr+1),6,1)
+-- Returns the trainer's current location.
+function get_location()
+	return as_location(read_byte(addresses["location"]))
 end
 
 -- Posts pokemon data to the database.
@@ -130,21 +127,29 @@ function post_poke(poke_data, nick)
 	end
 end
 
--- The script's main function, which updates the database if required.
-function update()
-
-	-- Check for changes only every second
+-- Update trainer data.
+function update_trainer()
 	if (frames % 60 == 0) then
-		if(get_badges() ~= badges or currentloc ~= get_current_map() or frames >= 3600) then
+		local badges = get_badges()
+		local location = get_location()
+		if (trainer["badges"] ~= badges or trainer["location"] ~= location or frames >= 3600) then
 			frames = 0
-			badges = get_badges()
-			currentloc = get_current_map()
-			http.request("http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" .. "Joran" .. "&time=" .. get_ingame_time() .. '&loc=' .. string.gsub(currentloc, " ", "%%20") .. '&badges=' .. badges)
-			print("updated trainer")
+			trainer["badges"] = badges
+			trainer["location"] = location
+			http.request(
+				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" .. "Joran" .."&time=" ..
+				get_ingame_time() .. '&loc=' .. string.gsub(trainer["location"], " ", "%%20") ..
+				'&badges=' .. trainer["badges"]
+			)
 		end
 	end
 	frames = frames + 1
+end
 
+-- The script's main function, which updates the database if required.
+function update()
+	-- Update the trainer data.
+	update_trainer()
 	for slot = 1, 6 do
 		-- Update each pokemon in the party.
 		local slot_address = addresses["party"] + (slot - 1) * offsets["slot"]
@@ -167,17 +172,17 @@ function update()
 
 			local nick = ""
 			for i = 1, 10 do
-				nick = nick .. get_ascii(read_byte(slot_address + offsets["nick"] + (i - 1)))
+				nick = nick .. as_ascii(read_byte(slot_address + offsets["nick"] + (i - 1)))
 			end
 			
 			if pokes[pid] == nil then
 				-- This pokemon has just been added to the party: post it to the database.
 				local nature = natures[(pid % 25) + 1]
-				local loc_met = get_location(get_bits(data[4][1], 8, 8))
+				local loc_met = as_location(get_bits(data[4][1], 8, 8))
 
 				local tname = ""
 				for i = 1, 7 do
-					tname = tname .. get_ascii(read_byte(slot_address + offsets["tname"] + (i - 1)))
+					tname = tname .. as_ascii(read_byte(slot_address + offsets["tname"] + (i - 1)))
 				end
 
 				local gender = 0
@@ -224,7 +229,7 @@ function update()
 				local opp_data = get_decrypted_data(addresses["opp_party"], opp_pid, opp_tid)
 				local opp_pindex = get_bits(opp_data[1][1], 0, 16)
 				local loc_died, _ = string.gsub(
-					get_location(get_bits(opp_data[4][1], 8, 8)), " ", "%%20"
+					as_location(get_bits(opp_data[4][1], 8, 8)), " ", "%%20"
 				)
 				http.request(
 					"http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&loc_died=" ..

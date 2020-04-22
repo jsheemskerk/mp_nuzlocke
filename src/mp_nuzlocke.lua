@@ -107,6 +107,15 @@ function get_location()
 	return as_location(read_byte(addresses["location"]))
 end
 
+-- Returns the trainer name found at a certain address.
+function get_tname(address)
+	local tname = ""
+		for i = 1, 7 do
+			tname = tname .. as_ascii(read_byte(address + (i - 1)))
+		end
+	return tname
+end
+
 -- Posts pokemon data to the database.
 function post_poke(poke_data, nick)
 	local response = {}
@@ -130,14 +139,16 @@ end
 -- Update trainer data.
 function update_trainer()
 	if (frames % 60 == 0) then
-		local badges = get_badges()
-		local location = get_location()
 		if (trainer["badges"] ~= badges or trainer["location"] ~= location or frames >= 3600) then
+			local curr_addr = addresses["save_start"] + read_byte(addresses["random_offset"])
+			local tname = get_tname(curr_addr)
+			local badges = get_badges()
+			local location = get_location()
 			frames = 0
 			trainer["badges"] = badges
 			trainer["location"] = location
 			http.request(
-				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" .. "Joran" .."&time=" ..
+				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" .. tname .."&time=" ..
 				get_ingame_time() .. '&loc=' .. string.gsub(trainer["location"], " ", "%%20") ..
 				'&badges=' .. trainer["badges"]
 			)
@@ -179,11 +190,7 @@ function update()
 				-- This pokemon has just been added to the party: post it to the database.
 				local nature = natures[(pid % 25) + 1]
 				local loc_met = as_location(get_bits(data[4][1], 8, 8))
-
-				local tname = ""
-				for i = 1, 7 do
-					tname = tname .. as_ascii(read_byte(slot_address + offsets["tname"] + (i - 1)))
-				end
+				local tname = get_tname(slot_address + offsets["tname"])
 
 				local gender = 0
 				local g_threshold = read_byte(

@@ -8,6 +8,7 @@ addresses = {
 	["opp_party"] = 0x02024744,
 	["poke_info"] = 0x083203E8,
 	["random_offset"] = 0x2039DD8,
+	["save_start"] = 0x20249F4,
 	["time"] = 0x02024A02
 }
 data_orders = {

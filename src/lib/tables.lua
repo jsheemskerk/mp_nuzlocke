@@ -1,15 +1,15 @@
 -- Tables required for the MP Nuzlocke script.
 
 addresses = {
-	["badges"] = 0x2026D1C,
-	["boxes"] = 0x2FE97AC,
 	["location"] = 0x203732C,
 	["party"] = 0x20244EC,
 	["opp_party"] = 0x02024744,
 	["poke_info"] = 0x083203E8,
-	["random_offset"] = 0x2039DD8,
-	["save_start"] = 0x20249F4,
-	["time"] = 0x02024A02
+	["saveblock1_base"] = 0x20259A0,
+	["saveblock3_base"] = 0x2026D1C,
+	["saveblock2_base"] = 0x20249F4,
+	["boxes_base"] = 0x2FE97AC,
+	["save_offset_byte"] = 0x2039DD8,
 }
 data_orders = {
 	{0,1,2,3}, {0,1,3,2}, {0,2,1,3}, {0,3,1,2}, {0,2,3,1}, {0,3,2,1},
@@ -53,4 +53,13 @@ offsets = {
 	["lvl"] = 84,
 	["hp"] = 86,
 	["slot"] = 100
+}
+
+save_offsets = {
+	-- Save block 1:
+	-- This is flag offset (0x1270) plus badge flag byte offset (0x10c) in one.
+	["badges"] = 4988,
+	
+	-- Save block 2:
+	["time"] = 14
 }

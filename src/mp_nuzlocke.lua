@@ -54,7 +54,10 @@ end
 
 -- Returns the current number of badges obtained.
 function get_badges()
-	local curr_addr = addresses["badges"] + read_byte(addresses["random_offset"])
+	local curr_addr = addresses["saveblock1_base"] +
+	read_byte(addresses["save_offset_byte"]) +
+	save_offsets["badges"]
+
 	local n_badges = get_bits(read_byte(curr_addr), 7, 1)
 	for i = 0, 6 do
 		n_badges = n_badges + get_bits(read_byte(curr_addr + 1), i, 1)
@@ -69,7 +72,7 @@ end
 
 -- TODO: Returns the pokemon which are currently boxed.
 function get_boxes()
-	local curr_addr = addresses["boxes"] + read_byte(addresses["random_offset"])
+	local curr_addr = addresses["boxes_base"] + read_byte(addresses["save_offset_byte"])
 end
 
 -- Returns the pokemon data at a certain address.
@@ -95,7 +98,7 @@ end
 
 -- Returns the current ingame time in seconds.
 function get_ingame_time()
-	local curr_addr = addresses["time"] + read_byte(addresses["random_offset"])
+	local curr_addr = addresses["saveblock2_base"] + save_offsets["time"] + read_byte(addresses["save_offset_byte"])
 	local time_data = read_dword(curr_addr)
 	return 3600 * get_bits(time_data, 0, 16) +
 		   60 * get_bits(time_data, 16, 8) +
@@ -108,12 +111,19 @@ function get_location()
 end
 
 -- Returns the trainer name found at a certain address.
-function get_tname(address)
-	local tname = ""
-		for i = 1, 7 do
-			tname = tname .. as_ascii(read_byte(address + (i - 1)))
-		end
-	return tname
+function get_tname()
+	local curr_addr = addresses["saveblock2_base"] + read_byte(addresses["save_offset_byte"])
+	return get_name(curr_addr, 7)
+end
+
+
+-- Reads a name from a certain address and length n.
+function get_name(addr, n)
+	name = ""
+	for i = 1, n do
+		name = name .. as_ascii(read_byte(addr + (i - 1)))
+	end
+	return name
 end
 
 -- Posts pokemon data to the database.
@@ -140,7 +150,6 @@ end
 function update_trainer()
 	if (frames % 60 == 0) then
 		if (trainer["badges"] ~= badges or trainer["location"] ~= location or frames >= 3600) then
-			local curr_addr = addresses["save_start"] + read_byte(addresses["random_offset"])
 			local tname = get_tname(curr_addr)
 			local badges = get_badges()
 			local location = get_location()
@@ -159,6 +168,10 @@ end
 
 -- The script's main function, which updates the database if required.
 function update()
+	if (input.get()["Q"]) then
+		print(get_tname())
+		print(get_badges())
+	end
 	-- Update the trainer data.
 	update_trainer()
 	for slot = 1, 6 do
@@ -181,16 +194,13 @@ function update()
 			end
 			evs = evs .. get_bits(data[3][2], 0, 8) .. ',' .. get_bits(data[3][2], 8, 8)
 
-			local nick = ""
-			for i = 1, 10 do
-				nick = nick .. as_ascii(read_byte(slot_address + offsets["nick"] + (i - 1)))
-			end
+			local nick = get_name(slot_address + offsets["nick"], 10)
 			
 			if pokes[pid] == nil then
 				-- This pokemon has just been added to the party: post it to the database.
 				local nature = natures[(pid % 25) + 1]
 				local loc_met = as_location(get_bits(data[4][1], 8, 8))
-				local tname = get_tname(slot_address + offsets["tname"])
+				local tname = get_name(slot_address + offsets["tname"], 7)
 
 				local gender = 0
 				local g_threshold = read_byte(

@@ -9,7 +9,7 @@ addresses = {
 	["saveblock3_base"] = 0x2026D1C,
 	["saveblock2_base"] = 0x20249F4,
 	["boxes_base"] = 0x2FE97AC,
-	["save_offset_byte"] = 0x2039DD8,
+	["save_offset_byte"] = 0x2039DD8
 }
 data_orders = {
 	{0,1,2,3}, {0,1,3,2}, {0,2,1,3}, {0,3,1,2}, {0,2,3,1}, {0,3,2,1},
@@ -61,5 +61,6 @@ save_offsets = {
 	["badges"] = 4988,
 	
 	-- Save block 2:
-	["time"] = 14
+	["time"] = 14,
+	["tid"] = 10
 }

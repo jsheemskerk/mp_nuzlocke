@@ -19,7 +19,8 @@ local frames = 1
 local pokes = {}
 local trainer = {
 	["badges"] = 0,
-	["location"] = "",
+	["name"] = "",
+	["location"] = ""
 }
 
 -- Returns the ascii value associated with a certain byte.
@@ -146,11 +147,36 @@ function post_poke(poke_data, nick)
 	end
 end
 
+-- Posts trainer data to the database.
+function post_trainer()
+	local tid = read_dword(
+		addresses["saveblock2_base"] + save_offsets["tid"] + read_byte(addresses["save_offset_byte"])
+	)
+	local trainer_data = [[{
+		"tid": ]] .. tid .. [[,
+		"tname": "]] .. trainer["name"] .. [["
+	}]]
+	http.request{
+		url = "http://www.joran.fun/nuzlocke/db/posttrainer.php",
+		method = "POST",
+		headers = {
+			["Content-Type"] = "application/json",
+			["Content-Length"] = trainer_data:len()
+		},
+		source = ltn12.source.string(trainer_data)
+	}
+	print(response)
+end
+
 -- Update trainer data.
 function update_trainer()
 	if (frames % 60 == 0) then
+		if (trainer["name"] ~= get_tname()) then
+			trainer["name"] = get_tname()
+			post_trainer()
+		end
 		if (trainer["badges"] ~= badges or trainer["location"] ~= location or frames >= 3600) then
-			local tname = get_tname(curr_addr)
+			local tname = trainer["name"]
 			local badges = get_badges()
 			local location = get_location()
 			frames = 0

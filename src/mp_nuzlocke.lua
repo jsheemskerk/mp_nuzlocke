@@ -291,17 +291,23 @@ function update()
 							as_location(get_bits(opp_data[4][1], 8, 8)), " ", "%%20"
 						)
 						http.request(
-							"http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&loc_died=" ..
+							"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid .. "&loc_died=" ..
 							loc_died .. "&time_died=" .. time .. "&opp=" .. opp_pindex .. "&died"
 						)
 					end
 
-					if lvl ~= pokes[pid].lvl or pindex ~= pokes[pid].pindex or nick ~= pokes[pid].nick then
-						-- Either the level, index or nickname has changed: update all dynamic stats.
+					if pindex ~= pokes[pid].pindex then
+						-- Pokemon has evolved, send all stats.
 						http.request(
-							"http://www.joran.fun/nuzlocke/db/update.php?pid=" .. pid .. "&lvl=" .. lvl ..
+							"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid .. "&lvl=" .. lvl ..
 							"&evs=" .. evs .. "&happiness=" .. happiness .. "&nick=" .. nick ..
 							"&pindex=" .. pindex
+						)
+					elseif lvl ~= pokes[pid].lvl or nick ~= pokes[pid].nick then
+						-- Either the level or nickname has changed: update all dynamic stats.
+						http.request(
+							"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid .. "&lvl=" .. lvl ..
+							"&evs=" .. evs .. "&happiness=" .. happiness .. "&nick=" .. nick
 						)
 					end
 

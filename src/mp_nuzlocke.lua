@@ -245,9 +245,11 @@ function update()
 					local g_threshold = read_byte(
 						addresses["poke_info"] + offsets["gender"] + (pindex - 1) * offsets["info"]
 					)
-					if g_threshold == 0xFE then gender = 2
-					elseif g_threshold == 0 or get_bits(pid, 0, 8) >= g_threshold then gender = 1
-					else gender = 2
+					if g_threshold ~= 0xFF then
+						if g_threshold == 0xFE then gender = 2
+						elseif g_threshold == 0 or get_bits(pid, 0, 8) >= g_threshold then gender = 1
+						else gender = 2
+						end
 					end
 
 					local ivs = get_bits(data[4][2], 0, 5)

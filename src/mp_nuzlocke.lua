@@ -153,19 +153,21 @@ function post_trainer()
 	local tid = read_dword(
 		addresses["saveblock2_base"] + save_offsets["tid"] + read_byte(addresses["save_offset_byte"])
 	)
-	local trainer_data = [[{
-		"tid": ]] .. tid .. [[,
-		"tname": "]] .. trainer["name"] .. [["
-	}]]
-	http.request{
-		url = "http://www.joran.fun/nuzlocke/db/posttrainer.php",
-		method = "POST",
-		headers = {
-			["Content-Type"] = "application/json",
-			["Content-Length"] = trainer_data:len()
-		},
-		source = ltn12.source.string(trainer_data)
-	}
+	if tid ~= 0 then
+		local trainer_data = [[{
+			"tid": ]] .. tid .. [[,
+			"tname": "]] .. trainer["name"] .. [["
+		}]]
+		http.request{
+			url = "http://www.joran.fun/nuzlocke/db/posttrainer.php",
+			method = "POST",
+			headers = {
+				["Content-Type"] = "application/json",
+				["Content-Length"] = trainer_data:len()
+			},
+			source = ltn12.source.string(trainer_data)
+		}
+	end
 end
 
 -- Update trainer data.

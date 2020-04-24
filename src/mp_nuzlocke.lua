@@ -149,32 +149,32 @@ function post_poke(poke_data, nick)
 end
 
 -- Posts trainer data to the database.
-function post_trainer()
-	local tid = read_dword(
-		addresses["saveblock2_base"] + save_offsets["tid"] + read_byte(addresses["save_offset_byte"])
-	)
-	if tid ~= 0 then
-		local trainer_data = [[{
-			"tid": ]] .. tid .. [[,
-			"tname": "]] .. trainer["name"] .. [["
-		}]]
-		http.request{
-			url = "http://www.joran.fun/nuzlocke/db/posttrainer.php",
-			method = "POST",
-			headers = {
-				["Content-Type"] = "application/json",
-				["Content-Length"] = trainer_data:len()
-			},
-			source = ltn12.source.string(trainer_data)
-		}
-	end
+function post_trainer(tid)
+	local trainer_data = [[{
+		"tid": ]] .. tid .. [[,
+		"tname": "]] .. trainer["name"] .. [["
+	}]]
+	http.request{
+		url = "http://www.joran.fun/nuzlocke/db/posttrainer.php",
+		method = "POST",
+		headers = {
+			["Content-Type"] = "application/json",
+			["Content-Length"] = trainer_data:len()
+		},
+		source = ltn12.source.string(trainer_data)
+	}
 end
 
 -- Update trainer data.
 function update_trainer()
 	if (trainer["name"] ~= get_tname()) then
-		trainer["name"] = get_tname()
-		post_trainer()
+		local tid = read_dword(
+			addresses["saveblock2_base"] + save_offsets["tid"] + read_byte(addresses["save_offset_byte"])
+		)
+		if tid ~= 0 then
+			trainer["name"] = get_tname()
+			post_trainer(tid)
+		end
 	end
 	if (trainer["badges"] ~= get_badges()) then
 		local badges = get_badges()

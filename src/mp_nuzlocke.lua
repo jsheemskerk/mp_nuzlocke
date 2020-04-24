@@ -34,6 +34,8 @@ function as_ascii(byte)
 		return string.char(byte - 122)
 	elseif byte >= 0xD5 and byte <= 0xEE then
 		return string.char(byte - 116)
+	elseif byte == 0x00 then
+		return " "
 	else
 		return ""
 	end

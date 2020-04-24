@@ -6,9 +6,8 @@ addresses = {
 	["opp_party"] = 0x02024744,
 	["poke_info"] = 0x083203E8,
 	["saveblock1_base"] = 0x20259A0,
-	["saveblock3_base"] = 0x2026D1C,
 	["saveblock2_base"] = 0x20249F4,
-	["boxes_base"] = 0x2FE97AC,
+	["boxes_base"] = 0x20297A8,
 	["save_offset_byte"] = 0x2039DD8
 }
 data_orders = {

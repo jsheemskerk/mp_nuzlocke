@@ -142,7 +142,9 @@ end
 function post_trainer(tid)
 	local trainer_data = [[{
 		"tid": ]] .. tid .. [[,
-		"tname": "]] .. trainer["name"] .. [["
+		"tname": "]] .. trainer["name"] .. [[",
+		"badges": ]] .. trainer["badges"] .. [[,
+		"location": "]] .. trainer["location"] .. [["
 	}]]
 	http.request{
 		url = "http://www.joran.fun/nuzlocke/db/posttrainer.php",
@@ -164,6 +166,8 @@ function update_trainer()
 		)
 		if tid ~= 0 then
 			trainer["name"] = get_tname()
+			trainer["badges"] = get_badges()
+			trainer["location"] = get_location()
 			post_trainer(tid)
 		end
 	end

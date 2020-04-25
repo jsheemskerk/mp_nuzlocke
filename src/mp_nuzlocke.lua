@@ -291,14 +291,15 @@ function update()
 						http.request(
 							"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
 							"&lvl=" .. lvl .. "&evs=" .. evs .. "&happiness=" .. happiness ..
-							"&nick=" .. nick .. "&evolved" .. "&pindex=" .. pindex
+							"&nick=" .. string.gsub(nick, " ", "%%20") .. "&evolved" ..
+							"&pindex=" .. pindex
 						)
 					elseif lvl ~= pokes[pid].lvl or nick ~= pokes[pid].nick then
 						-- Either the level or nickname has changed: update all dynamic stats.
 						http.request(
 							"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
 							"&lvl=" .. lvl .. "&evs=" .. evs .. "&happiness=" .. happiness ..
-							"&nick=" .. nick .. "&pindex=" .. pindex
+							"&nick=" .. string.gsub(nick, " ", "%%20") .. "&pindex=" .. pindex
 						)
 					end
 

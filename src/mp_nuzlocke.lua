@@ -68,11 +68,6 @@ function get_bits(bit_str, loc, nbits)
 	return bit.rshift(bit_str, loc) % bit.lshift(1, nbits)
 end
 
--- TODO: Returns the pokemon which are currently boxed.
-function get_boxes()
-	local curr_addr = addresses["boxes_base"] + read_byte(addresses["save_offset_byte"])
-end
-
 -- Returns the pokemon data at a certain address.
 function get_decrypted_data(address, pid, tid)
 	local data = {}
@@ -96,8 +91,8 @@ end
 
 -- Returns the current ingame time in seconds.
 function get_ingame_time()
-	local curr_addr = addresses["saveblock2_base"] + save_offsets["time"] + read_byte(addresses["save_offset_byte"])
-	local time_data = read_dword(curr_addr)
+	local curr_addr = addresses["saveblock2_base"] + read_byte(addresses["save_offset_byte"])
+	local time_data = read_dword(curr_addr + save_offsets["time"])
 	return 3600 * get_bits(time_data, 0, 16) +
 		   60 * get_bits(time_data, 16, 8) +
 		   get_bits(time_data, 24, 8)
@@ -108,14 +103,13 @@ function get_location()
 	return as_location(read_byte(addresses["location"]))
 end
 
--- Returns the trainer name found at a certain address.
+-- Returns the trainer name stored in memory.
 function get_tname()
-	local curr_addr = addresses["saveblock2_base"] + read_byte(addresses["save_offset_byte"])
-	return get_name(curr_addr, 7)
+	return get_name(addresses["saveblock2_base"] + read_byte(addresses["save_offset_byte"]), 7)
 end
 
 
--- Reads a name from a certain address and length n.
+-- Reads a name from a certain address with length n.
 function get_name(addr, n)
 	name = ""
 	for i = 1, n do
@@ -140,7 +134,7 @@ function post_poke(poke_data, nick)
 	if string.match(table.concat(response), "duplicate key") then
 		print(nick .. " is already in the database.")
 	else
-		print(nick .. " has been added to the database.")
+		print(nick .. " was not in the database.")
 	end
 end
 
@@ -165,7 +159,8 @@ end
 function update_trainer()
 	if (trainer["name"] ~= get_tname()) then
 		local tid = read_dword(
-			addresses["saveblock2_base"] + save_offsets["tid"] + read_byte(addresses["save_offset_byte"])
+			addresses["saveblock2_base"] + save_offsets["tid"] +
+			read_byte(addresses["save_offset_byte"])
 		)
 		if tid ~= 0 then
 			trainer["name"] = get_tname()
@@ -173,10 +168,9 @@ function update_trainer()
 		end
 	end
 	if (trainer["badges"] ~= get_badges()) then
-		local badges = get_badges()
 		local tname = trainer["name"]
-		trainer["badges"] = badges
-		response = http.request(
+		trainer["badges"] = get_badges()
+		http.request(
 			"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" .. tname ..
 			'&badges=' .. trainer["badges"]
 		)
@@ -185,7 +179,7 @@ function update_trainer()
 		frames = 0
 		trainer["location"] = get_location()
 		http.request(
-			"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" .. tname .."&time=" ..
+			"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" .. tname .. "&time=" ..
 			get_ingame_time() .. '&loc=' .. string.gsub(trainer["location"], " ", "%%20")
 		)
 	end
@@ -193,25 +187,16 @@ end
 
 -- The script's main function, which updates the database if required.
 function update()
-	if (input.get()["Q"]) then
-		str = ""
-		for i = 0, 100 do
-			str = str .. string.format("%.8x", read_dword(
-				addresses["boxes_base"] + read_byte(addresses["save_offset_byte"]) + i * 4
-			)) .. ' '
-		end
-		print(str)
-	end
 	if (frames % 60 == 0) then
 		-- Update the trainer data.
 		update_trainer()
 		for slot = 1, 36 do
-			-- Update each pokemon in the party.
+			-- Update each pokemon in the party and current box.
 			local slot_address = -1
 			if slot <= 6 then -- Party
 				slot_address = addresses["party"] + (slot - 1) * offsets["slot"]
 			else -- Box
-				curr_addr = addresses["boxes_base"] + read_byte(addresses["save_offset_byte"])
+				local curr_addr = addresses["boxes_base"] + read_byte(addresses["save_offset_byte"])
 				slot_address = curr_addr + 4 + read_dword(curr_addr) * (30 * 80) + (slot - 7) * 80
 			end
 			local pid = read_dword(slot_address)
@@ -238,6 +223,7 @@ function update()
 				local nick = get_name(slot_address + offsets["nick"], 10)
 				
 				if pokes[pid] == nil then
+					print("Post pid " .. pid .. " in slot " .. slot .. ".")
 					-- This pokemon has just been added to the party: post it to the database.
 					local nature = natures[(pid % 25) + 1]
 					local loc_met = as_location(get_bits(data[4][1], 8, 8))
@@ -293,25 +279,25 @@ function update()
 							as_location(get_bits(opp_data[4][1], 8, 8)), " ", "%%20"
 						)
 						http.request(
-							"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid .. "&loc_died=" ..
-							loc_died .. "&time_died=" .. time .. "&opp=" .. opp_pindex .. "&died"
+							"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
+							"&loc_died=" .. loc_died .. "&time_died=" .. time .. "&opp=" .. opp_pindex
+							.. "&died"
 						)
 					end
 
 					if pindex ~= pokes[pid].pindex then
 						-- Pokemon has evolved, send all stats.
-						print("pokemon has evolved")
 						http.request(
-							"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid .. "&lvl=" .. lvl ..
-							"&evs=" .. evs .. "&happiness=" .. happiness .. "&nick=" .. nick .. "&evolved" ..
-							"&pindex=" .. pindex
+							"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
+							"&lvl=" .. lvl .. "&evs=" .. evs .. "&happiness=" .. happiness ..
+							"&nick=" .. nick .. "&evolved" .. "&pindex=" .. pindex
 						)
 					elseif lvl ~= pokes[pid].lvl or nick ~= pokes[pid].nick then
 						-- Either the level or nickname has changed: update all dynamic stats.
 						http.request(
-							"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid .. "&lvl=" .. lvl ..
-							"&evs=" .. evs .. "&happiness=" .. happiness .. "&nick=" .. nick ..
-							"&pindex=" .. pindex
+							"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
+							"&lvl=" .. lvl .. "&evs=" .. evs .. "&happiness=" .. happiness ..
+							"&nick=" .. nick .. "&pindex=" .. pindex
 						)
 					end
 

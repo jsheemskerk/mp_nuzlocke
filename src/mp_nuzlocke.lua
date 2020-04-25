@@ -171,16 +171,17 @@ function update_trainer()
 		local tname = trainer["name"]
 		trainer["badges"] = get_badges()
 		http.request(
-			"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" .. tname ..
-			'&badges=' .. trainer["badges"]
+			"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" ..
+			string.gsub(trainer["name"], " ", "%%20") .. '&badges=' .. trainer["badges"]
 		)
 	elseif (trainer["location"] ~= get_location() or frames >= 3600) then
 		local tname = trainer["name"]
 		frames = 0
 		trainer["location"] = get_location()
 		http.request(
-			"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" .. tname .. "&time=" ..
-			get_ingame_time() .. '&loc=' .. string.gsub(trainer["location"], " ", "%%20")
+			"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" ..
+			string.gsub(trainer["name"], " ", "%%20") .. "&time=" .. get_ingame_time() ..
+			'&loc=' .. string.gsub(trainer["location"], " ", "%%20")
 		)
 	end
 end

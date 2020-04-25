@@ -69,10 +69,10 @@ function get_bits(bit_str, loc, nbits)
 end
 
 -- Returns the pokemon data at a certain address.
-function get_decrypted_data(address, pid, tid)
+function get_decrypted_data(address, personality, tid)
 	local data = {}
-	local data_order = data_orders[(pid % 24) + 1]
-	local key = bit.bxor(pid, tid)
+	local data_order = data_orders[(personality % 24) + 1]
+	local key = bit.bxor(personality, tid)
 	for i = 1, 4 do
 		local block = {}
 		for j = 1, 3 do
@@ -204,12 +204,17 @@ function update()
 				local curr_addr = addresses["boxes_base"] + read_byte(addresses["save_offset_byte"])
 				slot_address = curr_addr + 4 + read_dword(curr_addr) * (30 * 80) + (slot - 7) * 80
 			end
-			local pid = read_dword(slot_address)
-			if pid ~= 0 and (pokes[pid] == nil or slot <= 6) then
+
+			local personality = read_dword(slot_address)
+			local tid = read_dword(slot_address + offsets["tid"])
+			local data = get_decrypted_data(slot_address, personality, tid)
+			local pindex = get_bits(data[1][1], 0, 16)
+
+			-- To separate ninjask from shedinja
+			local pid = personality + pindex
+
+			if personality ~= 0 and (pokes[pid] == nil or slot <= 6) then
 				-- There is a pokemon in the current slot.
-				local tid = read_dword(slot_address + offsets["tid"])
-				local data = get_decrypted_data(slot_address, pid, tid)
-				local pindex = get_bits(data[1][1], 0, 16)
 				local happiness = get_bits(data[1][3], 8, 8);
 				local hp = 0 
 				local lvl = 0
@@ -230,7 +235,7 @@ function update()
 				if pokes[pid] == nil then
 					print("Post pid " .. pid .. " in slot " .. slot .. ".")
 					-- This pokemon has just been added to the party: post it to the database.
-					local nature = natures[(pid % 25) + 1]
+					local nature = natures[(personality % 25) + 1]
 					local loc_met = as_location(get_bits(data[4][1], 8, 8))
 					local tname = get_name(slot_address + offsets["tname"], 7)
 
@@ -240,7 +245,7 @@ function update()
 					)
 					if g_threshold ~= 0xFF then
 						if g_threshold == 0xFE then gender = 2
-						elseif g_threshold == 0 or get_bits(pid, 0, 8) >= g_threshold then gender = 1
+						elseif g_threshold == 0 or get_bits(personality, 0, 8) >= g_threshold then gender = 1
 						else gender = 2
 						end
 					end
@@ -283,9 +288,9 @@ function update()
 							-- stay in the current slot.
 							opp_addr = opp_addr + offsets["slot"]
 						end
-						local opp_pid = read_dword(opp_addr)
+						local opp_personality = read_dword(opp_addr)
 						local opp_tid = read_dword(opp_addr + offsets["tid"])
-						local opp_data = get_decrypted_data(opp_addr, opp_pid, opp_tid)
+						local opp_data = get_decrypted_data(opp_addr, opp_personality, opp_tid)
 						local opp_pindex = get_bits(opp_data[1][1], 0, 16)
 						local loc_died, _ = string.gsub(
 							as_location(get_bits(opp_data[4][1], 8, 8)), " ", "%%20"

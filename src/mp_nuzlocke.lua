@@ -272,9 +272,16 @@ function update()
 				if slot <= 6 then
 					if hp == 0 and pokes[pid].hp ~= 0 then
 						-- This pokemon has just fainted: update the associated stats.
-						local opp_pid = read_dword(addresses["opp_party"])
-						local opp_tid = read_dword(addresses["opp_party"] + offsets["tid"])
-						local opp_data = get_decrypted_data(addresses["opp_party"], opp_pid, opp_tid)
+						local opp_addr = addresses["opp_party"]
+						while (read_word(opp_addr + offsets["hp"]) == 0 and
+							   read_dword(opp_addr) ~= 0) do 
+							-- Temporary fix: finds the first opponent alive, as their pokemon
+							-- stay in the current slot.
+							opp_addr = opp_addr + offsets["slot"]
+						end
+						local opp_pid = read_dword(opp_addr)
+						local opp_tid = read_dword(opp_addr + offsets["tid"])
+						local opp_data = get_decrypted_data(opp_addr, opp_pid, opp_tid)
 						local opp_pindex = get_bits(opp_data[1][1], 0, 16)
 						local loc_died, _ = string.gsub(
 							as_location(get_bits(opp_data[4][1], 8, 8)), " ", "%%20"

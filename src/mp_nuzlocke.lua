@@ -216,6 +216,9 @@ function update()
 				-- To separate ninjask from shedinja
 				local pid = personality + pindex
 
+				local banked = "t"
+				if slot <= 6 then banked = "f" end
+
 				if (pokes[pid] == nil or slot <= 6) then
 					-- There is a pokemon in the current slot.
 					local happiness = get_bits(data[1][3], 8, 8);
@@ -269,7 +272,8 @@ function update()
 							"gender": ]] .. gender .. [[,
 							"time_met": "]] .. time .. [[",
 							"evs": []] .. evs .. [[],
-							"happiness": ]] .. happiness .. [[
+							"happiness": ]] .. happiness .. [[,
+							"banked": "]] .. banked .. [["
 						}]]
 
 						if not (loc_met == "Petalburg City" and pindex == 288) then
@@ -277,7 +281,10 @@ function update()
 							post_poke(poke_data, nick)
 						end
 
-						pokes[pid] = {["pindex"] = pindex, ["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick}
+						pokes[pid] = {
+							["pindex"] = pindex, ["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick,
+							["banked"] = banked
+						}
 					end
 
 					if slot <= 6 then
@@ -299,8 +306,8 @@ function update()
 							)
 							http.request(
 								"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
-								"&loc_died=" .. loc_died .. "&time_died=" .. time .. "&opp=" .. opp_pindex
-								.. "&died"
+								"&loc_died=" .. loc_died .. "&time_died=" .. time .. "&opp=" ..
+								opp_pindex .. "&died"
 							)
 						end
 
@@ -312,17 +319,29 @@ function update()
 								"&nick=" .. string.gsub(nick, " ", "%%20") .. "&evolved" ..
 								"&pindex=" .. pindex
 							)
-						elseif lvl ~= pokes[pid].lvl or nick ~= pokes[pid].nick then
+						elseif banked ~= pokes[pid].banked or lvl ~= pokes[pid].lvl or
+							   nick ~= pokes[pid].nick then
 							-- Either the level or nickname has changed: update all dynamic stats.
 							http.request(
 								"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
 								"&lvl=" .. lvl .. "&evs=" .. evs .. "&happiness=" .. happiness ..
-								"&nick=" .. string.gsub(nick, " ", "%%20") .. "&pindex=" .. pindex
+								"&nick=" .. string.gsub(nick, " ", "%%20") .. "&pindex=" .. pindex ..
+								"&banked=" .. banked
 							)
 						end
 
-						pokes[pid] = {["pindex"] = pindex, ["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick}
+						pokes[pid]["pindex"] = pindex
+						pokes[pid]["hp"] = hp
+						pokes[pid]["lvl"] = lvl
+						pokes[pid]["nick"] = nick
 					end
+				end
+				if pokes[pid]["banked"] ~= banked then
+					http.request(
+						"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
+						"&banked=" .. banked
+					)
+					pokes[pid]["banked"] = banked
 				end
 			end
 		end

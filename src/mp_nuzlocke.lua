@@ -26,18 +26,12 @@ local trainer = {
 
 -- Returns the ascii value associated with a certain byte.
 function as_ascii(byte)
-	if byte >= 0xA1 and byte <= 0xAA then
-		return string.char(byte - 113)
-	elseif byte == 0xAE then
-		return "-"
-	elseif byte >= 0xBB and byte <= 0xD4 then
-		return string.char(byte - 122)
-	elseif byte >= 0xD5 and byte <= 0xEE then
-		return string.char(byte - 116)
-	elseif byte == 0x00 then
-		return " "
-	else
-		return ""
+	if byte == 0x00 then return " "
+	elseif byte >= 0xA1 and byte <= 0xAA then return string.char(byte - 113)
+	elseif byte >= 0xAB and byte <= 0xBA then return chars[byte - 170]
+	elseif byte >= 0xBB and byte <= 0xD4 then return string.char(byte - 122)
+	elseif byte >= 0xD5 and byte <= 0xEE then return string.char(byte - 116)
+	else return ""
 	end
 end
 

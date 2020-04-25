@@ -228,7 +228,6 @@ function update()
 				local nick = get_name(slot_address + offsets["nick"], 10)
 				
 				if pokes[pid] == nil then
-					print("Post pid " .. pid .. " in slot " .. slot .. ".")
 					-- This pokemon has just been added to the party: post it to the database.
 					local nature = natures[(pid % 25) + 1]
 					local loc_met = as_location(get_bits(data[4][1], 8, 8))

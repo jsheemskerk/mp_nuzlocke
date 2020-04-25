@@ -213,8 +213,8 @@ function update()
 				local data = get_decrypted_data(slot_address, personality, tid)
 				local pindex = get_bits(data[1][1], 0, 16)
 
-				-- To separate ninjask from shedinja
-				local pid = personality + pindex
+				-- To separate ninjask from shedinja, not working yet..
+				local pid = personality
 
 				local banked = "t"
 				if slot <= 6 then banked = "f" end

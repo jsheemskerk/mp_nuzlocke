@@ -186,13 +186,10 @@ function update_trainer()
 			"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" .. tname ..
 			'&badges=' .. trainer["badges"]
 		)
-		print(response)
-		print(trainer["badges"])
-	elseif (trainer["location"] ~= location or frames >= 3600) then
+	elseif (trainer["location"] ~= get_location() or frames >= 3600) then
 		local tname = trainer["name"]
-		local location = get_location()
 		frames = 0
-		trainer["location"] = location
+		trainer["location"] = get_location()
 		http.request(
 			"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" .. tname .."&time=" ..
 			get_ingame_time() .. '&loc=' .. string.gsub(trainer["location"], " ", "%%20")
@@ -309,16 +306,18 @@ function update()
 
 					if pindex ~= pokes[pid].pindex then
 						-- Pokemon has evolved, send all stats.
+						print("pokemon has evolved")
 						http.request(
 							"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid .. "&lvl=" .. lvl ..
-							"&evs=" .. evs .. "&happiness=" .. happiness .. "&nick=" .. nick ..
+							"&evs=" .. evs .. "&happiness=" .. happiness .. "&nick=" .. nick .. "&evolved" ..
 							"&pindex=" .. pindex
 						)
 					elseif lvl ~= pokes[pid].lvl or nick ~= pokes[pid].nick then
 						-- Either the level or nickname has changed: update all dynamic stats.
 						http.request(
 							"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid .. "&lvl=" .. lvl ..
-							"&evs=" .. evs .. "&happiness=" .. happiness .. "&nick=" .. nick
+							"&evs=" .. evs .. "&happiness=" .. happiness .. "&nick=" .. nick ..
+							"&pindex=" .. pindex
 						)
 					end
 

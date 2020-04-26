@@ -111,7 +111,7 @@ end
 
 -- Reads a name from a certain address with length n.
 function get_name(addr, n)
-	name = ""
+	local name = ""
 	for i = 1, n do
 		name = name .. as_ascii(read_byte(addr + (i - 1)))
 	end
@@ -221,8 +221,9 @@ function update()
 
 				if (pokes[pid] == nil or slot <= 6) then
 					-- There is a pokemon in the current slot.
-					local happiness = get_bits(data[1][3], 8, 8);
-					local loc_met = as_location(get_bits(data[4][1], 8, 8))
+					local happiness = get_bits(data[1][3], 8, 8)
+					local loc_id = get_bits(data[4][1], 8, 8)
+					local loc_met = as_location(loc_id)
 					local hp = 0 
 					local lvl = 0
 					if slot <= 6 then
@@ -283,12 +284,12 @@ function update()
 
 						pokes[pid] = {
 							["pindex"] = pindex, ["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick,
-							["banked"] = banked, ["loc_met"] = loc_met
+							["banked"] = banked, ["loc_id"] = loc_id
 						}
 					end
 
 					--pokemon is in party and data is not garbage (in the middle of data swap)
-					if slot <= 6 and pokes[pid].loc_met == loc_met then
+					if slot <= 6 and pokes[pid].loc_id == loc_id then
 						if hp == 0 and pokes[pid].hp ~= 0 then
 							-- This pokemon has just fainted: update the associated stats.
 							local opp_addr = addresses["opp_party"]

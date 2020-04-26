@@ -222,6 +222,7 @@ function update()
 				if (pokes[pid] == nil or slot <= 6) then
 					-- There is a pokemon in the current slot.
 					local happiness = get_bits(data[1][3], 8, 8);
+					local loc_met = as_location(get_bits(data[4][1], 8, 8))
 					local hp = 0 
 					local lvl = 0
 					if slot <= 6 then
@@ -241,7 +242,6 @@ function update()
 					if pokes[pid] == nil then
 						-- This pokemon has just been added to the party: post it to the database.
 						local nature = natures[(personality % 25) + 1]
-						local loc_met = as_location(get_bits(data[4][1], 8, 8))
 						local tname = get_name(slot_address + offsets["tname"], 7)
 
 						local gender = 0
@@ -283,11 +283,12 @@ function update()
 
 						pokes[pid] = {
 							["pindex"] = pindex, ["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick,
-							["banked"] = banked
+							["banked"] = banked, ["loc_met"] = loc_met
 						}
 					end
 
-					if slot <= 6 then
+					--pokemon is in party and data is not garbage (in the middle of data swap)
+					if slot <= 6 and pokes[pid].loc_met == loc_met then
 						if hp == 0 and pokes[pid].hp ~= 0 then
 							-- This pokemon has just fainted: update the associated stats.
 							local opp_addr = addresses["opp_party"]

@@ -114,7 +114,8 @@ end
 function get_name(addr, n)
 	local name = ""
 	for i = 1, n do
-		name = name .. as_ascii(read_byte(addr + (i - 1)))
+		byte = read_byte(addr + (i - 1))
+		if byte ~= 0xFF then name = name .. as_ascii(byte) else break end
 	end
 	return name
 end
@@ -214,8 +215,8 @@ function update()
 				local data = get_decrypted_data(slot_address, personality, tid)
 				local pindex = get_bits(data[1][1], 0, 16)
 
-				-- To separate ninjask from shedinja, not working yet..
 				local pid = personality
+				if pindex == 303 then pid = pid + 1 end -- Shedinja
 
 				local banked = "t"
 				if slot <= 6 then banked = "f" end

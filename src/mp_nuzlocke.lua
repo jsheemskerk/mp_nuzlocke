@@ -315,27 +315,26 @@ function update()
 							)
 						end
 
-						if nick ~= pokes[pid].nick then
-							-- The pokemon has been renamed.
-							http.request(
-								"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
-								"&nick=" .. string.gsub(nick, " ", "%%20") .. "&tname=" .. 
-								pokes[pid].tname .. "&pindex=" .. pindex .. "&rename"
-							)
-						end
 						if pindex ~= pokes[pid].pindex then
 							-- Pokemon has evolved: update its stats.
 							http.request(
 								"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
 								"&lvl=" .. lvl .. "&evs=" .. evs .. "&happiness=" .. happiness ..
 								"&evolved" .. "&pindex=" .. pindex .. "&nick=" .. nick
-							) 
+							)
 						elseif banked ~= pokes[pid].banked or lvl ~= pokes[pid].lvl then
 							-- Either the level or banked status has changed: update its stats.
 							http.request(
 								"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
 								"&lvl=" .. lvl .. "&evs=" .. evs .. "&happiness=" .. happiness ..
 								"&banked=" .. banked
+							)
+						elseif nick ~= pokes[pid].nick then
+							-- The pokemon has been renamed.
+							http.request(
+								"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
+								"&nick=" .. string.gsub(nick, " ", "%%20") .. "&tname=" .. 
+								pokes[pid].tname .. "&pindex=" .. pindex .. "&rename"
 							)
 						end
 

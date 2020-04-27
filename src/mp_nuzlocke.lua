@@ -43,10 +43,11 @@ function as_location(byte)
 		return "Route " .. (byte + 85)
 	elseif byte <= 0x57 then
 		return locations[byte - 33]
-	elseif byte <= 0xD4 then
+	elseif byte >= 0xC5 and byte <= 0xD4 then
 		return locations[byte - 142]
-	else
+	elseif byte == 0xFE or byte == 0xFF then
 		return locations[byte - 183]
+	else return "Invalid location"
 	end
 end
 

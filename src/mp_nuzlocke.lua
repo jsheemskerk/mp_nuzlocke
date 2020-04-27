@@ -285,11 +285,11 @@ function update()
 
 						pokes[pid] = {
 							["pindex"] = pindex, ["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick,
-							["banked"] = banked, ["loc_id"] = loc_id
+							["banked"] = banked, ["loc_id"] = loc_id, ["tname"] = tname
 						}
 					end
 
-					--pokemon is in party and data is not garbage (in the middle of data swap)
+					--Pokemon is in party and data was decrypted properly (in the middle of data swap)
 					if slot <= 6 and pokes[pid].loc_id == loc_id then
 						if hp == 0 and pokes[pid].hp ~= 0 then
 							-- This pokemon has just fainted: update the associated stats.
@@ -314,21 +314,26 @@ function update()
 							)
 						end
 
-						if pindex ~= pokes[pid].pindex then
-							-- Pokemon has evolved, send all stats.
+						if nick ~= pokes[pid].nick then
+							-- The pokemon has been renamed.
 							http.request(
 								"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
-								"&lvl=" .. lvl .. "&evs=" .. evs .. "&happiness=" .. happiness ..
-								"&nick=" .. string.gsub(nick, " ", "%%20") .. "&evolved" ..
-								"&pindex=" .. pindex
+								"&nick=" .. string.gsub(nick, " ", "%%20") .. "&tname=" .. 
+								pokes[pid].tname .. "&pindex=" .. pindex .. "&rename"
 							)
-						elseif banked ~= pokes[pid].banked or lvl ~= pokes[pid].lvl or
-							   nick ~= pokes[pid].nick then
-							-- Either the level or nickname has changed: update all dynamic stats.
+						end
+						if pindex ~= pokes[pid].pindex then
+							-- Pokemon has evolved: update its stats.
 							http.request(
 								"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
 								"&lvl=" .. lvl .. "&evs=" .. evs .. "&happiness=" .. happiness ..
-								"&nick=" .. string.gsub(nick, " ", "%%20") .. "&pindex=" .. pindex ..
+								"&evolved" .. "&pindex=" .. pindex .. "&nick=" .. nick
+							) 
+						elseif banked ~= pokes[pid].banked or lvl ~= pokes[pid].lvl then
+							-- Either the level or banked status has changed: update its stats.
+							http.request(
+								"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
+								"&lvl=" .. lvl .. "&evs=" .. evs .. "&happiness=" .. happiness ..
 								"&banked=" .. banked
 							)
 						end

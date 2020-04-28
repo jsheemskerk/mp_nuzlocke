@@ -204,7 +204,13 @@ function update()
 				slot_address = addresses["party"] + (slot - 1) * offsets["slot"]
 			else -- Box
 				local curr_addr = addresses["boxes_base"] + read_byte(addresses["save_offset_byte"])
-				slot_address = curr_addr + 4 + read_dword(curr_addr) * (30 * 80) + (slot - 7) * 80
+				local box_id = read_dword(curr_addr)
+				if box_id < 14 then
+					slot_address = curr_addr + 4 + box_id * (30 * 80) + (slot - 7) * 80
+				else -- Garbage data; pause emulator?
+					print(curr_addr, box_id, slot)
+					break
+				end
 			end
 
 			local personality = read_dword(slot_address)

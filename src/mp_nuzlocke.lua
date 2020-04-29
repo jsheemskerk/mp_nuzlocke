@@ -181,7 +181,8 @@ function update_trainer()
 			post_trainer(tid)
 		end
 	end
-	if (trainer["badges"] ~= get_badges()) then
+	local n_badges = get_badges()
+	if (n_badges ~= 0 and trainer["badges"] ~= n_badges) then
 		local tname = trainer["name"]
 		trainer["badges"] = get_badges()
 		http.request(

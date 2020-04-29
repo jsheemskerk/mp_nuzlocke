@@ -240,8 +240,8 @@ function update()
 				if (pokes[pid] == nil or slot <= 6) then
 					-- There is a pokemon in the current slot.
 					local happiness = get_bits(data[1][3], 8, 8)
-					local loc_id = get_bits(data[4][1], 8, 8)
-					local loc_met = as_location(loc_id)
+					local loc_met = as_location(get_bits(data[4][1], 8, 8))
+					local tname = get_name(slot_address + offsets["tname"], 7)
 					local hp = 0 
 					local lvl = 0
 					if slot <= 6 then
@@ -261,7 +261,6 @@ function update()
 					if pokes[pid] == nil then
 						-- This pokemon has just been added to the party: post it to the database.
 						local nature = natures[(personality % 25) + 1]
-						local tname = get_name(slot_address + offsets["tname"], 7)
 
 						local gender = 0
 						local g_threshold = read_byte(
@@ -303,12 +302,13 @@ function update()
 
 						pokes[pid] = {
 							["pindex"] = pindex, ["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick,
-							["banked"] = banked, ["loc_id"] = loc_id, ["tname"] = tname
+							["banked"] = banked, ["tname"] = tname
 						}
 					end
 
 					--Pokemon is in party and data was decrypted properly (in the middle of data swap)
-					if slot <= 6 and pokes[pid].loc_id == loc_id then
+					local pindex_key = get_bits(bit.bxor(personality, tid), 0, 16)
+					if slot <= 6 and bit.bxor(pindex, pindex_key) ~= pokes[pid].pindex then
 						if hp == 0 and pokes[pid].hp ~= 0 then
 							-- This pokemon has just fainted: update the associated stats.
 							local opp_addr = addresses["opp_party"]
@@ -333,25 +333,26 @@ function update()
 						end
 
 						if pindex ~= pokes[pid].pindex then
-							-- Pokemon has evolved: update its stats.
+							-- The pokemon has evolved: update its stats.
 							http.request(
 								"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
 								"&lvl=" .. lvl .. "&evs=" .. evs .. "&happiness=" .. happiness ..
-								"&evolved" .. "&pindex=" .. pindex .. "&nick=" .. nick
+								"&pindex=" .. pindex .. "&nick=" .. nick .. "&tname=" ..
+								string.gsub(tname, " ", "%%20") .. "&evolved"
 							)
-						elseif banked ~= pokes[pid].banked or lvl ~= pokes[pid].lvl then
-							-- Either the level or banked status has changed: update its stats.
+						elseif lvl ~= pokes[pid].lvl then
+							-- The pokemon has leveled up: update its stats.
 							http.request(
 								"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
-								"&lvl=" .. lvl .. "&evs=" .. evs .. "&happiness=" .. happiness ..
-								"&banked=" .. banked
+								"&lvl=" .. lvl .. "&evs=" .. evs .. "&happiness=" .. happiness
 							)
 						elseif nick ~= pokes[pid].nick then
 							-- The pokemon has been renamed.
 							http.request(
 								"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
 								"&nick=" .. string.gsub(nick, " ", "%%20") .. "&tname=" .. 
-								pokes[pid].tname .. "&pindex=" .. pindex .. "&rename"
+								string.gsub(pokes[pid].tname, " ", "%%20") .. "&pindex=" ..
+								pindex .. "&rename"
 							)
 						end
 

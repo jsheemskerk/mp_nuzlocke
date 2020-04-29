@@ -14,12 +14,18 @@ read_dword = memory.readdwordunsigned
 read_word = memory.readwordunsigned
 read_byte = memory.readbyteunsigned
 
+
+-- THE SESSION NUMBER OF THIS PLAYTHROUGH
+-- Default should be 0
+local session = 0
+
 -- Local data storage
 local frames = 1
 local pokes = {}
 local trainer = {
 	["badges"] = 0,
 	["name"] = "",
+	["tid"] = "",
 	["location"] = ""
 }
 
@@ -146,7 +152,8 @@ function post_trainer(tid)
 		"tid": ]] .. tid .. [[,
 		"tname": "]] .. trainer["name"] .. [[",
 		"badges": ]] .. trainer["badges"] .. [[,
-		"location": "]] .. trainer["location"] .. [["
+		"location": "]] .. trainer["location"] .. [[",
+		"session": ]] .. session .. [[
 	}]]
 	http.request{
 		url = "http://www.joran.fun/nuzlocke/db/posttrainer.php",
@@ -168,6 +175,7 @@ function update_trainer()
 		)
 		if tid ~= 0 then
 			trainer["name"] = get_tname()
+			trainer["tid"] = tid
 			trainer["badges"] = get_badges()
 			trainer["location"] = get_location()
 			post_trainer(tid)
@@ -178,7 +186,8 @@ function update_trainer()
 		trainer["badges"] = get_badges()
 		http.request(
 			"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" ..
-			string.gsub(trainer["name"], " ", "%%20") .. '&badges=' .. trainer["badges"]
+			string.gsub(trainer["name"], " ", "%%20") .. "&tid=" ..
+			trainer["tid"] .. '&badges=' .. trainer["badges"]
 		)
 	elseif (trainer["location"] ~= get_location() or frames >= 3600) then
 		local tname = trainer["name"]
@@ -186,7 +195,8 @@ function update_trainer()
 		trainer["location"] = get_location()
 		http.request(
 			"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" ..
-			string.gsub(trainer["name"], " ", "%%20") .. "&time=" .. get_ingame_time() ..
+			string.gsub(trainer["name"], " ", "%%20") .. "&tid=" ..
+			trainer["tid"] .. "&time=" .. get_ingame_time() ..
 			'&loc=' .. string.gsub(trainer["location"], " ", "%%20")
 		)
 	end
@@ -272,6 +282,7 @@ function update()
 						local poke_data = [[{
 							"pid": ]] .. pid .. [[,
 							"tname": "]] .. tname .. [[",
+							"tid": ]] .. tid .. [[,
 							"pindex": ]] .. pindex .. [[,
 							"nick": "]] .. nick .. [[",
 							"lvl": ]] .. lvl .. [[,

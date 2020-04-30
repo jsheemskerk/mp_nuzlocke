@@ -211,7 +211,7 @@ function update_trainer()
 			trainer["location"] = location
 			http.request(
 				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
-				"&loc=" .. location
+				"&loc=" .. string.gsub(location, " ", "%%20")
 			)
 		elseif frames >= const["fps"] * 60 then
 			-- Update the trainer's ingame time periodically.

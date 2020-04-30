@@ -149,7 +149,7 @@ function post_poke(poke_data, nick)
 	if string.match(table.concat(response), "duplicate key") then
 		print(nick .. " is already in the database.")
 	else
-		print(nick .. " was not in the database.")
+		print(nick .. " has been added to the database.")
 	end
 end
 
@@ -162,6 +162,7 @@ function post_trainer()
 		"tname": "]] .. trainer["tname"] .. [[",
 		"session": ]] .. session .. [[
 	}]]
+	local response = {}
 	http.request{
 		url = "http://www.joran.fun/nuzlocke/db/posttrainer.php",
 		method = "POST",
@@ -169,8 +170,14 @@ function post_trainer()
 			["Content-Type"] = "application/json",
 			["Content-Length"] = trainer_data:len()
 		},
-		source = ltn12.source.string(trainer_data)
+		source = ltn12.source.string(trainer_data),
+		sink = ltn12.sink.table(response)
 	}
+	if string.match(table.concat(response), "duplicate key") then
+		print("Trainer " .. trainer["tname"] .. " is already known.")
+	else
+		print("Trainer " .. trainer["tname"] .. " has been added to the database.")
+	end
 end
 
 -- Updates the trainer data.
@@ -200,11 +207,11 @@ function update_trainer()
 		-- Trainer is known locally: check if updates are required.
 		-- A maximum of one update is applied to avoid ingame lagspikes.
 		if (trainer["badges"] ~= badges and badges ~= 0) then
-			-- The number of badges has changed: update relevant data.
+			-- The number of badges has increased: update relevant data.
 			trainer["badges"] = badges
 			http.request(
 				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
-				"&badges=" .. badges .. "&tname=" .. string.gsub(trainer["tname"], " ", "%%20")
+				"&badges=" .. badges
 			)
 		elseif trainer["location"] ~= location then
 			-- The location has changed: update relevant data.
@@ -293,8 +300,7 @@ function update()
 
 						local poke_data = [[{
 							"pid": ]] .. pid .. [[,
-							"tname": "]] .. tname .. [[",
-							"tid": ]] .. tid .. [[,
+							"tid": ]] .. trainer["tid"] .. [[,
 							"pindex": ]] .. pindex .. [[,
 							"nick": "]] .. nick .. [[",
 							"lvl": ]] .. lvl .. [[,
@@ -389,4 +395,5 @@ function update()
 end
 
 -- Applies the main function on a per-frame basis.
+print("script has started!")
 gui.register(update)

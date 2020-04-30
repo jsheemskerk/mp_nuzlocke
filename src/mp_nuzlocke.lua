@@ -22,7 +22,7 @@ local trainer = {
 }
 
 -- Represents the current session: should be 0 by default.
-local session = 1
+local session = 0
 
 -- Returns the ascii value associated with a certain byte.
 function as_ascii(byte)
@@ -57,8 +57,13 @@ function get_badges()
 				 read_byte(addresses["save_offset_byte"]) +
 				 offsets.sb1["badges"]
 
+	-- Read 2 badges bytes
 	local badgesword = read_word(addr)
+
+	-- Mask with 0111111110000000
 	local badges = bit.band(0x7F80, badgesword)
+
+	-- Count 1's
 	return count_set_bits(badges)
 end
 
@@ -67,7 +72,7 @@ function get_league_prog()
 				 read_byte(addresses["save_offset_byte"]) +
 				 offsets.sb1["elite4"]
 
-	local addr2 = local addr = addresses["saveblock1_base"] +
+	local addr2 = addresses["saveblock1_base"] +
 				 read_byte(addresses["save_offset_byte"]) +
 				 offsets.sb1["badges"]
 

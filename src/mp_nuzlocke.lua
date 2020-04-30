@@ -22,7 +22,7 @@ local trainer = {
 }
 
 -- Represents the current session: should be 0 by default.
-local session = 0
+local session = 1
 
 -- Returns the ascii value associated with a certain byte.
 function as_ascii(byte)
@@ -56,14 +56,31 @@ function get_badges()
 	local addr = addresses["saveblock1_base"] +
 				 read_byte(addresses["save_offset_byte"]) +
 				 offsets.sb1["badges"]
-	
+
 	local badgesword = read_word(addr)
 	local badges = bit.band(0x7F80, badgesword)
 	return count_set_bits(badges)
 end
 
+function get_league_prog()
+	local addr = addresses["saveblock1_base"] +
+				 read_byte(addresses["save_offset_byte"]) +
+				 offsets.sb1["elite4"]
+
+	local addr2 = local addr = addresses["saveblock1_base"] +
+				 read_byte(addresses["save_offset_byte"]) +
+				 offsets.sb1["badges"]
+
+	local wallace = read_word(addr2)
+	local wallace2 = bit.band(0x0010, wallace)
+
+	local league_bytes = read_word(addr)
+	local league_prog = bit.band(0x01e0, league_bytes)
+	return count_set_bits(league_prog) + count_set_bits(wallace2)
+end
+
 -- Counts the number of 1's in an integer 'n' (Kernighan's algorithm)
-function count_set_bits(n) 
+function count_set_bits(n)
 	if (n == 0) then return 0 end
 	return bit.band(n, 1) + count_set_bits( bit.rshift(n, 1))
 end
@@ -161,6 +178,7 @@ end
 -- Posts trainer data to the database.
 function post_trainer()
 	local trainer_data = [[{
+		"league": ]] .. trainer["league"] .. [[,
 		"badges": ]] .. trainer["badges"] .. [[,
 		"location": "]] .. trainer["location"] .. [[",
 		"tid": ]] .. trainer["tid"] .. [[,
@@ -187,6 +205,7 @@ end
 
 -- Updates the trainer data.
 function update_trainer()
+	local league = get_league_prog()
 	local badges = get_badges()
 	local location = as_location(read_byte(addresses["location"]))
 	local tname = get_name(addresses["saveblock2_base"] + read_byte(addresses["save_offset_byte"]), 7)
@@ -201,6 +220,7 @@ function update_trainer()
 		if tid ~= 0 then
 			-- Trainer has a valid TID: store and post relevant data.
 			trainer = {
+				["league"] = league,
 				["badges"] = badges,
 				["location"] = location,
 				["tid"] = tid,
@@ -224,6 +244,13 @@ function update_trainer()
 			http.request(
 				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
 				"&loc=" .. string.gsub(location, " ", "%%20")
+			)
+		elseif trainer["league"] ~= league then
+			-- The location has changed: update relevant data.
+			trainer["league"] = league
+			http.request(
+				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
+				"&leag=" .. string.gsub(league, " ", "%%20")
 			)
 		elseif frames >= const["fps"] * 60 then
 			-- Update the trainer's ingame time periodically.
@@ -264,7 +291,7 @@ function update()
 					local happiness = get_bits(data[1][3], 8, 8)
 					local loc_met = as_location(get_bits(data[4][1], 8, 8))
 					local tname = get_name(slot_address + offsets.poke["tname"], 7)
-					local hp = 0 
+					local hp = 0
 					local lvl = 0
 					if slot <= 6 then
 						hp = read_word(slot_address + offsets.poke["hp"])
@@ -279,7 +306,7 @@ function update()
 					evs = evs .. get_bits(data[3][2], 0, 8) .. ',' .. get_bits(data[3][2], 8, 8)
 
 					local nick = get_name(slot_address + offsets.poke["nick"], 10)
-					
+
 					if pokes[pid] == nil then
 						-- This pokemon has just been added to the party: post it to the database.
 						local nature = natures[(personality % 25) + 1]
@@ -337,7 +364,7 @@ function update()
 							-- This pokemon has just fainted: update the associated stats.
 							local opp_addr = addresses["opp_party"]
 							while (read_word(opp_addr + offsets.poke["hp"]) == 0 and
-								   read_dword(opp_addr) ~= 0) do 
+								   read_dword(opp_addr) ~= 0) do
 								-- Temporary fix: finds the first opponent alive, as their pokemon
 								-- stay in the current slot.
 								opp_addr = opp_addr + data_sizes["poke"]
@@ -374,7 +401,7 @@ function update()
 							-- The pokemon has been renamed.
 							http.request(
 								"http://www.joran.fun/nuzlocke/db/updatepokemon.php?pid=" .. pid ..
-								"&nick=" .. string.gsub(nick, " ", "%%20") .. "&tname=" .. 
+								"&nick=" .. string.gsub(nick, " ", "%%20") .. "&tname=" ..
 								string.gsub(pokes[pid].tname, " ", "%%20") .. "&pindex=" ..
 								pindex .. "&rename"
 							)

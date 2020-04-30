@@ -37,9 +37,9 @@ data_sizes = {
 }
 
 locations = {
-	"Littleroot Town", "Oldale Town", "Dewford Town", "Lavaridge Town", "Fallarbor Town", 
-	"Verdanturf Town", "Pacifidlog Town", "Petalburg City", "Slateport City", "Mauville City", 
-	"Rustboro City", "Fortree City", "Lilycove City", "Mossdeep City", "Sootopolis City", 
+	"Littleroot Town", "Oldale Town", "Dewford Town", "Lavaridge Town", "Fallarbor Town",
+	"Verdanturf Town", "Pacifidlog Town", "Petalburg City", "Slateport City", "Mauville City",
+	"Rustboro City", "Fortree City", "Lilycove City", "Mossdeep City", "Sootopolis City",
 	"Ever Grande City", "Underwater (Route 124)", "Underwater (Route 126)", "Underwater (Route 127)",
 	"Underwater (Route 128)", "Underwater (Sootopolis City)", "Granite Cave", "Mt. Chimney",
 	"Safari Zone", "Battle Frontier", "Petalburg Woods", "Rusturf Tunnel", "Abandoned Ship",
@@ -78,6 +78,7 @@ offsets = {
 		["hp"] = 86,
 	},
 	["sb1"] = {
+		["elite4"] = 4912,
 		["badges"] = 4988, -- Flag offset (0x1270) + flag byte offset (0x10c).
 	},
 	["sb2"] = {

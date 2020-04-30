@@ -296,8 +296,8 @@ function update()
 							"banked": "]] .. banked .. [["
 						}]]
 
-						if not (loc_met == "Petalburg City" and pindex == 288) then
-							-- The pokemon isn't Wally's Zigzagoon.
+						if tid ~= 61226 and not (loc_met == "Petalburg City" and pindex == 288) then
+							-- The pokemon isn't one of Steven's or Wally's Zigzagoon.
 							post_poke(poke_data, nick)
 						end
 

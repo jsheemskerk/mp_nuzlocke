@@ -55,7 +55,7 @@ end
 function get_badges()
 	local addr = addresses["saveblock1_base"] +
 				 read_byte(addresses["save_offset_byte"]) +
-				 save_offsets["badges"]
+				 offsets.sb1["badges"]
 	local n_badges = get_bits(read_byte(addr), 7, 1)
 	for i = 0, 6 do
 		n_badges = n_badges + get_bits(read_byte(addr + 1), i, 1)
@@ -78,9 +78,9 @@ function get_decrypted_data(address, personality, tid)
 		for j = 1, 3 do
 			block[j] = bit.bxor(
 				read_dword(
-					address + offsets["data"] +
-					data_order[i] * offsets["block"] +
-					(j - 1) * offsets["dword"]
+					address + offsets.poke["data"] +
+					data_order[i] * data_sizes["block"] +
+					(j - 1) * data_sizes["dword"]
 				), key
 			)
 		end
@@ -93,7 +93,7 @@ end
 function get_ingame_time()
 	local addr = addresses["saveblock2_base"] +
 				 read_byte(addresses["save_offset_byte"]) +
-				 save_offsets["time"]
+				 offsets.sb2["time"]
 	local time_data = read_dword(addr)
 	return 3600 * get_bits(time_data, 0, 16) +
 		   60 * get_bits(time_data, 16, 8) +
@@ -108,6 +108,29 @@ function get_name(addr, n)
 		if byte ~= 0xFF then name = name .. as_ascii(byte) else break end
 	end
 	return name
+end
+
+-- Returns the address which holds the data for the current slot.
+function get_slot_address(slot)
+	if slot <= const["party_size"] then
+		-- The slot concerns a party member.
+		return addresses["party"] + (slot - 1) * data_sizes["poke"]
+	else
+		-- The slot concerns a boxed pokemon.
+		local addr = addresses["boxes_base"] + read_byte(addresses["save_offset_byte"])
+		local box_id = read_dword(addr)
+		if box_id < const["n_boxes"] then
+			-- The box ID is valid: return the address of the current box-slot pair.
+			return addr +
+				   offsets.boxes["pokes"] +
+				   box_id * const["box_size"] * data_sizes["boxed_poke"] +
+				   (slot - 7) * data_sizes["boxed_poke"]
+		else
+			-- The box ID is invalid: print statistics and return an error value.
+			print(slot, addr, box_id)
+			return -1
+		end
+	end
 end
 
 -- Posts pokemon data to the database.
@@ -131,12 +154,12 @@ function post_poke(poke_data, nick)
 end
 
 -- Posts trainer data to the database.
-function post_trainer(tid)
+function post_trainer()
 	local trainer_data = [[{
-		"tid": ]] .. tid .. [[,
-		"tname": "]] .. trainer["tname"] .. [[",
 		"badges": ]] .. trainer["badges"] .. [[,
 		"location": "]] .. trainer["location"] .. [[",
+		"tid": ]] .. trainer["tid"] .. [[,
+		"tname": "]] .. trainer["tname"] .. [[",
 		"session": ]] .. session .. [[
 	}]]
 	http.request{
@@ -156,13 +179,14 @@ function update_trainer()
 	local location = as_location(read_byte(addresses["location"]))
 	local tname = get_name(addresses["saveblock2_base"] + read_byte(addresses["save_offset_byte"]), 7)
 
-	if (trainer["tname"] ~= tname) then
+	if trainer["tname"] ~= tname then
 		-- Trainer is not known locally: check the TID to confirm that data can be posted.
 		local tid = read_dword(
-			addresses["saveblock2_base"] + read_byte(addresses["save_offset_byte"]) +
-			save_offsets["tid"]
+			addresses["saveblock2_base"] +
+			read_byte(addresses["save_offset_byte"]) +
+			offsets.sb2["tid"]
 		)
-		if (tid ~= 0) then
+		if tid ~= 0 then
 			-- Trainer has a valid TID: store and post relevant data.
 			trainer = {
 				["badges"] = badges,
@@ -170,7 +194,7 @@ function update_trainer()
 				["tid"] = tid,
 				["tname"] = tname
 			}
-			post_trainer(tid)
+			post_trainer()
 		end
 	else
 		-- Trainer is known locally: check if updates are required.
@@ -182,14 +206,14 @@ function update_trainer()
 				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
 				"&badges=" .. badges .. "&tname=" .. string.gsub(trainer["tname"], " ", "%%20")
 			)
-		elseif (trainer["location"] ~= location) then
+		elseif trainer["location"] ~= location then
 			-- The location has changed: update relevant data.
 			trainer["location"] = location
 			http.request(
 				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
 				"&loc=" .. location
 			)
-		elseif (frames >= 3600) then
+		elseif frames >= const["fps"] * 60 then
 			-- Update the trainer's ingame time periodically.
 			frames = 0
 			http.request(
@@ -202,49 +226,37 @@ end
 
 -- The script's main function, which updates the data if required.
 function update()
-	if (frames % 60 == 0) then
+	if frames % const["fps"] == 0 then
 		-- Update the data roughly every second.
 		update_trainer()
-		for slot = 1, 36 do
+		for slot = 1, (const["party_size"] + const["box_size"]) do
 			-- Update each pokemon in the party and current box.
-			local slot_address = -1
-			if slot <= 6 then -- Party
-				slot_address = addresses["party"] + (slot - 1) * offsets["slot"]
-			else -- Box
-				local curr_addr = addresses["boxes_base"] + read_byte(addresses["save_offset_byte"])
-				local box_id = read_dword(curr_addr)
-				if box_id < 14 then
-					slot_address = curr_addr + 4 + box_id * (30 * 80) + (slot - 7) * 80
-				else -- Garbage data; pause emulator?
-					print(curr_addr, box_id, slot)
-					break
-				end
-			end
-
+			local slot_address = get_slot_address(slot)
+			if slot_address == -1 then break end
 			local personality = read_dword(slot_address)
 
 			if personality ~= 0 then
+				-- There is a pokemon in the current slot.
+				local banked = "t"
+				if slot <= 6 then banked = "f" end
 
-				local tid = read_dword(slot_address + offsets["tid"])
+				local tid = read_dword(slot_address + offsets.poke["tid"])
 				local data = get_decrypted_data(slot_address, personality, tid)
 				local pindex = get_bits(data[1][1], 0, 16)
 
 				local pid = personality
-				if pindex == 303 then pid = pid + 1 end -- Shedinja
-
-				local banked = "t"
-				if slot <= 6 then banked = "f" end
+				if pindex == const["shedinja_pindex"] then pid = pid + 1 end
 
 				if (pokes[pid] == nil or slot <= 6) then
-					-- There is a pokemon in the current slot.
+					-- The pokemon was either just caught, or is in the party.
 					local happiness = get_bits(data[1][3], 8, 8)
 					local loc_met = as_location(get_bits(data[4][1], 8, 8))
-					local tname = get_name(slot_address + offsets["tname"], 7)
+					local tname = get_name(slot_address + offsets.poke["tname"], 7)
 					local hp = 0 
 					local lvl = 0
 					if slot <= 6 then
-						hp = read_word(slot_address + offsets["hp"])
-						lvl = read_byte(slot_address + offsets["lvl"])
+						hp = read_word(slot_address + offsets.poke["hp"])
+						lvl = read_byte(slot_address + offsets.poke["lvl"])
 					end
 					local time = get_ingame_time()
 
@@ -254,7 +266,7 @@ function update()
 					end
 					evs = evs .. get_bits(data[3][2], 0, 8) .. ',' .. get_bits(data[3][2], 8, 8)
 
-					local nick = get_name(slot_address + offsets["nick"], 10)
+					local nick = get_name(slot_address + offsets.poke["nick"], 10)
 					
 					if pokes[pid] == nil then
 						-- This pokemon has just been added to the party: post it to the database.
@@ -262,7 +274,9 @@ function update()
 
 						local gender = 0
 						local g_threshold = read_byte(
-							addresses["poke_info"] + offsets["gender"] + (pindex - 1) * offsets["info"]
+							addresses["base_stats"] +
+							offsets.base_stats["gender"] +
+							(pindex - 1) * data_sizes["base_stats"]
 						)
 						if g_threshold ~= 0xFF then
 							if g_threshold == 0xFE then gender = 2
@@ -311,14 +325,14 @@ function update()
 						if hp == 0 and pokes[pid].hp ~= 0 then
 							-- This pokemon has just fainted: update the associated stats.
 							local opp_addr = addresses["opp_party"]
-							while (read_word(opp_addr + offsets["hp"]) == 0 and
+							while (read_word(opp_addr + offsets.poke["hp"]) == 0 and
 								   read_dword(opp_addr) ~= 0) do 
 								-- Temporary fix: finds the first opponent alive, as their pokemon
 								-- stay in the current slot.
-								opp_addr = opp_addr + offsets["slot"]
+								opp_addr = opp_addr + data_sizes["poke"]
 							end
 							local opp_personality = read_dword(opp_addr)
-							local opp_tid = read_dword(opp_addr + offsets["tid"])
+							local opp_tid = read_dword(opp_addr + offsets.poke["tid"])
 							local opp_data = get_decrypted_data(opp_addr, opp_personality, opp_tid)
 							local opp_pindex = get_bits(opp_data[1][1], 0, 16)
 							local loc_died, _ = string.gsub(

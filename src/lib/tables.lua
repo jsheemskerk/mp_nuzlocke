@@ -1,22 +1,41 @@
 -- Tables required for the MP Nuzlocke script.
 
 addresses = {
+	["base_stats"] = 0x083203E8,
 	["boxes_base"] = 0x20297A8,
 	["location"] = 0x203732C,
 	["opp_party"] = 0x02024744,
 	["party"] = 0x20244EC,
-	["poke_info"] = 0x083203E8,
 	["save_offset_byte"] = 0x2039DD8,
 	["saveblock1_base"] = 0x20259A0,
 	["saveblock2_base"] = 0x20249F4
 }
+
 chars = {"!", "?", ".", "-", "", ".", "'", "'", "'", "'", "M", "F", "", ",", "", "/"}
+
+const = {
+	["party_size"] = 6,
+	["n_boxes"] = 14,
+	["box_size"] = 30,
+	["fps"] = 60,
+	["shedinja_pindex"] = 303
+}
+
 data_orders = {
 	{0,1,2,3}, {0,1,3,2}, {0,2,1,3}, {0,3,1,2}, {0,2,3,1}, {0,3,2,1},
 	{1,0,2,3}, {1,0,3,2}, {2,0,1,3}, {3,0,1,2}, {2,0,3,1}, {3,0,2,1},
 	{1,2,0,3}, {1,3,0,2}, {2,1,0,3}, {3,1,0,2}, {2,3,0,1}, {3,2,0,1},
 	{1,2,3,0}, {1,3,2,0}, {2,1,3,0}, {3,1,2,0}, {2,3,1,0}, {3,2,1,0}
 }
+
+data_sizes = {
+	["dword"] = 4,
+	["block"] = 12,
+	["base_stats"] = 28,
+	["boxed_poke"] = 80,
+	["poke"] = 100
+}
+
 locations = {
 	"Littleroot Town", "Oldale Town", "Dewford Town", "Lavaridge Town", "Fallarbor Town", 
 	"Verdanturf Town", "Pacifidlog Town", "Petalburg City", "Slateport City", "Mauville City", 
@@ -34,6 +53,7 @@ locations = {
 	"Underwater (Route 129)", "Desert Underpass", "Altering Cave", "Navel Rock", "Trainer Hill",
 	"Ingame Trade", "Fateful Encounter"
 }
+
 natures = {
 	"\"Hardy\"", "\"Lonely\",0,1", "\"Brave\",0,2", "\"Adamant\",0,3", "\"Naughty\",0,4",
 	"\"Bold\",1,0", "\"Docile\"", "\"Relaxed\",1,2", "\"Impish\",1,3", "\"Lax\",1,4",
@@ -41,25 +61,27 @@ natures = {
 	"\"Modest\",3,0", "\"Mild\",3,1", "\"Quiet\",3,2", "\"Bashful\"", "\"Rash\",3,4",
 	"\"Calm\",4,0", "\"Gentle\",4,1", "\"Sassy\",4,2", "\"Careful\",4,3", "\"Quirky\""
 }
-offsets = {
-	["dword"] = 4,
-	["tid"] = 4,
-	["nick"] = 8,
-	["block"] = 12,
-	["gender"] = 16,
-	["tname"] = 20,
-	["info"] = 28,
-	["data"] = 32,
-	["lvl"] = 84,
-	["hp"] = 86,
-	["slot"] = 100
-}
 
-save_offsets = {
-	-- Save block 1
-	["badges"] = 4988, -- Flag offset (0x1270) + flag byte offset (0x10c).
-	
-	-- Save block 2
-	["tid"] = 10,
-	["time"] = 14
+offsets = {
+	["base_stats"] = {
+		["gender"] = 16
+	},
+	["boxes"] = {
+		["pokes"] = 4
+	},
+	["poke"] = {
+		["tid"] = 4,
+		["nick"] = 8,
+		["tname"] = 20,
+		["data"] = 32,
+		["lvl"] = 84,
+		["hp"] = 86,
+	},
+	["sb1"] = {
+		["badges"] = 4988, -- Flag offset (0x1270) + flag byte offset (0x10c).
+	},
+	["sb2"] = {
+		["tid"] = 10,
+		["time"] = 14
+	}
 }

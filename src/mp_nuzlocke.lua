@@ -56,11 +56,16 @@ function get_badges()
 	local addr = addresses["saveblock1_base"] +
 				 read_byte(addresses["save_offset_byte"]) +
 				 offsets.sb1["badges"]
-	local n_badges = get_bits(read_byte(addr), 7, 1)
-	for i = 0, 6 do
-		n_badges = n_badges + get_bits(read_byte(addr + 1), i, 1)
-	end
-	return n_badges
+	
+	local badgesword = read_word(addr)
+	local badges = bit.band(0x7F80, badgesword)
+	return count_set_bits(badges)
+end
+
+-- Counts the number of 1's in an integer 'n' (Kernighan's algorithm)
+function count_set_bits(n) 
+	if (n == 0) then return 0 end
+	return bit.band(n, 1) + count_set_bits( bit.rshift(n, 1))
 end
 
 -- Returns a number of bits from a certain location in a bit string.

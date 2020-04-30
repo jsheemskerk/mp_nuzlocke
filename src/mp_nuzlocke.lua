@@ -14,21 +14,15 @@ read_dword = memory.readdwordunsigned
 read_word = memory.readwordunsigned
 read_byte = memory.readbyteunsigned
 
-
--- THE SESSION NUMBER OF THIS PLAYTHROUGH
--- Default should be 0
-local session = 0
-
--- Local data storage
+-- Variables which store data between updates.
 local frames = 1
 local pokes = {}
 local trainer = {
-	["badges"] = 0,
-	["name"] = "",
-	["tid"] = "",
-	["location"] = ""
+	["tname"] = ""
 }
 
+-- Represents the current session: should be 0 by default.
+local session = 0
 
 -- Returns the ascii value associated with a certain byte.
 function as_ascii(byte)
@@ -57,15 +51,14 @@ function as_location(byte)
 	end
 end
 
--- Returns the current number of badges obtained.
+-- Returns the number of badges obtained thus far.
 function get_badges()
-	local curr_addr = addresses["saveblock1_base"] +
-	read_byte(addresses["save_offset_byte"]) +
-	save_offsets["badges"]
-
-	local n_badges = get_bits(read_byte(curr_addr), 7, 1)
+	local addr = addresses["saveblock1_base"] +
+				 read_byte(addresses["save_offset_byte"]) +
+				 save_offsets["badges"]
+	local n_badges = get_bits(read_byte(addr), 7, 1)
 	for i = 0, 6 do
-		n_badges = n_badges + get_bits(read_byte(curr_addr + 1), i, 1)
+		n_badges = n_badges + get_bits(read_byte(addr + 1), i, 1)
 	end
 	return n_badges
 end
@@ -98,29 +91,20 @@ end
 
 -- Returns the current ingame time in seconds.
 function get_ingame_time()
-	local curr_addr = addresses["saveblock2_base"] + read_byte(addresses["save_offset_byte"])
-	local time_data = read_dword(curr_addr + save_offsets["time"])
+	local addr = addresses["saveblock2_base"] +
+				 read_byte(addresses["save_offset_byte"]) +
+				 save_offsets["time"]
+	local time_data = read_dword(addr)
 	return 3600 * get_bits(time_data, 0, 16) +
 		   60 * get_bits(time_data, 16, 8) +
 		   get_bits(time_data, 24, 8)
 end
 
--- Returns the trainer's current location.
-function get_location()
-	return as_location(read_byte(addresses["location"]))
-end
-
--- Returns the trainer name stored in memory.
-function get_tname()
-	return get_name(addresses["saveblock2_base"] + read_byte(addresses["save_offset_byte"]), 7)
-end
-
-
--- Reads a name from a certain address with length n.
+-- Returns the name stored at a certain address with maximum length n.
 function get_name(addr, n)
 	local name = ""
-	for i = 1, n do
-		byte = read_byte(addr + (i - 1))
+	for i = 0, (n - 1) do
+		byte = read_byte(addr + i)
 		if byte ~= 0xFF then name = name .. as_ascii(byte) else break end
 	end
 	return name
@@ -150,7 +134,7 @@ end
 function post_trainer(tid)
 	local trainer_data = [[{
 		"tid": ]] .. tid .. [[,
-		"tname": "]] .. trainer["name"] .. [[",
+		"tname": "]] .. trainer["tname"] .. [[",
 		"badges": ]] .. trainer["badges"] .. [[,
 		"location": "]] .. trainer["location"] .. [[",
 		"session": ]] .. session .. [[
@@ -166,47 +150,60 @@ function post_trainer(tid)
 	}
 end
 
--- Update trainer data.
+-- Updates the trainer data.
 function update_trainer()
-	if (trainer["name"] ~= get_tname()) then
+	local badges = get_badges()
+	local location = as_location(read_byte(addresses["location"]))
+	local tname = get_name(addresses["saveblock2_base"] + read_byte(addresses["save_offset_byte"]), 7)
+
+	if (trainer["tname"] ~= tname) then
+		-- Trainer is not known locally: check the TID to confirm that data can be posted.
 		local tid = read_dword(
-			addresses["saveblock2_base"] + save_offsets["tid"] +
-			read_byte(addresses["save_offset_byte"])
+			addresses["saveblock2_base"] + read_byte(addresses["save_offset_byte"]) +
+			save_offsets["tid"]
 		)
-		if tid ~= 0 then
-			trainer["name"] = get_tname()
-			trainer["tid"] = tid
-			trainer["badges"] = get_badges()
-			trainer["location"] = get_location()
+		if (tid ~= 0) then
+			-- Trainer has a valid TID: store and post relevant data.
+			trainer = {
+				["badges"] = badges,
+				["location"] = location,
+				["tid"] = tid,
+				["tname"] = tname
+			}
 			post_trainer(tid)
 		end
-	end
-	local n_badges = get_badges()
-	if (n_badges ~= 0 and trainer["badges"] ~= n_badges) then
-		local tname = trainer["name"]
-		trainer["badges"] = get_badges()
-		http.request(
-			"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" ..
-			string.gsub(trainer["name"], " ", "%%20") .. "&tid=" ..
-			trainer["tid"] .. '&badges=' .. trainer["badges"]
-		)
-	elseif (trainer["location"] ~= get_location() or frames >= 3600) then
-		local tname = trainer["name"]
-		frames = 0
-		trainer["location"] = get_location()
-		http.request(
-			"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tname=" ..
-			string.gsub(trainer["name"], " ", "%%20") .. "&tid=" ..
-			trainer["tid"] .. "&time=" .. get_ingame_time() ..
-			'&loc=' .. string.gsub(trainer["location"], " ", "%%20")
-		)
+	else
+		-- Trainer is known locally: check if updates are required.
+		-- A maximum of one update is applied to avoid ingame lagspikes.
+		if (trainer["badges"] ~= badges and badges ~= 0) then
+			-- The number of badges has changed: update relevant data.
+			trainer["badges"] = badges
+			http.request(
+				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
+				"&badges=" .. badges .. "&tname=" .. string.gsub(trainer["tname"], " ", "%%20")
+			)
+		elseif (trainer["location"] ~= location) then
+			-- The location has changed: update relevant data.
+			trainer["location"] = location
+			http.request(
+				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
+				"&loc=" .. location
+			)
+		elseif (frames >= 3600) then
+			-- Update the trainer's ingame time periodically.
+			frames = 0
+			http.request(
+				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
+				"&time=" .. get_ingame_time()
+			)
+		end
 	end
 end
 
--- The script's main function, which updates the database if required.
+-- The script's main function, which updates the data if required.
 function update()
 	if (frames % 60 == 0) then
-		-- Update the trainer data.
+		-- Update the data roughly every second.
 		update_trainer()
 		for slot = 1, 36 do
 			-- Update each pokemon in the party and current box.
@@ -269,7 +266,8 @@ function update()
 						)
 						if g_threshold ~= 0xFF then
 							if g_threshold == 0xFE then gender = 2
-							elseif g_threshold == 0 or get_bits(personality, 0, 8) >= g_threshold then gender = 1
+							elseif g_threshold == 0 or get_bits(personality, 0, 8) >= g_threshold then
+								gender = 1
 							else gender = 2
 							end
 						end

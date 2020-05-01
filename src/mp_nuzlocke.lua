@@ -181,9 +181,9 @@ function post_poke(poke_data, nick)
 		sink = ltn12.sink.table(response)
 	}
 	if string.match(table.concat(response), "duplicate key") then
-		print(nick .. " is known to the database.")
+		print(nick .. " was known to the database.")
 	else
-		print(nick .. " is unknown to the database.")
+		print(nick .. " was unknown to the database.")
 	end
 end
 
@@ -210,9 +210,9 @@ function post_trainer()
 		sink = ltn12.sink.table(response)
 	}
 	if string.match(table.concat(response), "duplicate key") then
-		print(trainer["tname"] .. " is known to the database.")
+		print("Trainer " .. trainer["tname"] .. " was known to the database.")
 	else
-		print(trainer["tname"] .. " is unknown to the database.")
+		print("Trainer " .. trainer["tname"] .. " was unknown to the database.")
 	end
 end
 
@@ -440,5 +440,4 @@ function update()
 end
 
 -- Applies the main function on a per-frame basis.
-print("script has started!")
 gui.register(update)

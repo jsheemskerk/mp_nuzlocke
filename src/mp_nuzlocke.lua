@@ -68,6 +68,7 @@ function get_badges()
 end
 
 function get_league_prog()
+	
 	local addr = addresses["saveblock1_base"] +
 				 read_byte(addresses["save_offset_byte"]) +
 				 offsets.sb1["elite4"]
@@ -78,10 +79,14 @@ function get_league_prog()
 
 	local wallace = read_word(addr2)
 	local wallace2 = bit.band(0x0010, wallace)
-
-	local league_bytes = read_word(addr)
-	local league_prog = bit.band(0x01e0, league_bytes)
-	return count_set_bits(league_prog) + count_set_bits(wallace2)
+	
+	if (count_set_bits(wallace2) == 1) then
+		return 5
+	else
+		local league_byte = read_byte(addr)
+		local league_prog = bit.band(0x78, league_byte)
+		return count_set_bits(league_prog)
+	end
 end
 
 -- Counts the number of 1's in an integer 'n' (Kernighan's algorithm)
@@ -260,7 +265,7 @@ function update_trainer()
 			trainer["league"] = league
 			http.request(
 				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
-				"&leag=" .. string.gsub(league, " ", "%%20")
+				"&league=" .. league
 			)
 		elseif frames >= const["fps"] * 60 then
 			-- Update the trainer's ingame time periodically.

@@ -78,8 +78,9 @@ offsets = {
 		["hp"] = 86,
 	},
 	["sb1"] = {
-		["elite4"] = 4912,
-		["badges"] = 4988, -- Flag offset (0x1270) + flag byte offset (0x10c).
+		["flags"] = 0x1270,
+		["elite4"] = 0x1270 + 0x9F,
+		["badges"] = 0x1270 + 0x10C,
 	},
 	["sb2"] = {
 		["tid"] = 10,

@@ -68,7 +68,6 @@ function get_badges()
 end
 
 function get_league_prog()
-	
 	local addr = addresses["saveblock1_base"] +
 				 read_byte(addresses["save_offset_byte"]) +
 				 offsets.sb1["elite4"]
@@ -162,8 +161,7 @@ function get_slot_address(slot)
 				   box_id * const["box_size"] * data_sizes["boxed_poke"] +
 				   (slot - 7) * data_sizes["boxed_poke"]
 		else
-			-- The box ID is invalid: print statistics and return an error value.
-			print(slot, addr, box_id)
+			-- The box ID is invalid: return an error value.
 			return -1
 		end
 	end
@@ -183,9 +181,9 @@ function post_poke(poke_data, nick)
 		sink = ltn12.sink.table(response)
 	}
 	if string.match(table.concat(response), "duplicate key") then
-		print(nick .. " is already in the database.")
+		print(nick .. " is known to the database.")
 	else
-		print(nick .. " has been added to the database.")
+		print(nick .. " is unknown to the database.")
 	end
 end
 
@@ -212,9 +210,9 @@ function post_trainer()
 		sink = ltn12.sink.table(response)
 	}
 	if string.match(table.concat(response), "duplicate key") then
-		print("Trainer " .. trainer["tname"] .. " is already known.")
+		print(trainer["tname"] .. " is known to the database.")
 	else
-		print("Trainer " .. trainer["tname"] .. " has been added to the database.")
+		print(trainer["tname"] .. " is unknown to the database.")
 	end
 end
 

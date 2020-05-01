@@ -86,8 +86,12 @@ end
 
 -- Counts the number of 1's in an integer 'n' (Kernighan's algorithm)
 function count_set_bits(n)
-	if (n == 0) then return 0 end
-	return bit.band(n, 1) + count_set_bits( bit.rshift(n, 1))
+	count = 0
+	while (n ~= 0) do
+		n = bit.band(n, n-1)
+		count = count + 1
+	end
+	return count
 end
 
 -- Returns a number of bits from a certain location in a bit string.
@@ -186,6 +190,7 @@ function post_trainer()
 		"league": ]] .. trainer["league"] .. [[,
 		"badges": ]] .. trainer["badges"] .. [[,
 		"location": "]] .. trainer["location"] .. [[",
+		"time": ]] .. get_ingame_time() .. [[,
 		"tid": ]] .. trainer["tid"] .. [[,
 		"tname": "]] .. trainer["tname"] .. [[",
 		"session": ]] .. session .. [[
@@ -236,7 +241,7 @@ function update_trainer()
 	else
 		-- Trainer is known locally: check if updates are required.
 		-- A maximum of one update is applied to avoid ingame lagspikes.
-		if (trainer["badges"] ~= badges and badges ~= 0) then
+		if trainer["badges"] < badges then
 			-- The number of badges has increased: update relevant data.
 			trainer["badges"] = badges
 			http.request(
@@ -250,7 +255,7 @@ function update_trainer()
 				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
 				"&loc=" .. string.gsub(location, " ", "%%20")
 			)
-		elseif trainer["league"] ~= league then
+		elseif trainer["league"] < league then
 			-- The location has changed: update relevant data.
 			trainer["league"] = league
 			http.request(

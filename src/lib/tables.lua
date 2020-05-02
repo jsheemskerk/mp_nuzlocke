@@ -18,7 +18,9 @@ const = {
 	["n_boxes"] = 14,
 	["box_size"] = 30,
 	["fps"] = 60,
-	["shedinja_pindex"] = 303
+	["zigzagoon_pindex"] = 288,
+	["shedinja_pindex"] = 303,
+	["steven_tid"] = 61226
 }
 
 data_orders = {
@@ -52,6 +54,12 @@ locations = {
 	"Underwater (Marine Cave)", "Terra Cave", "Underwater (Route 105)", "Underwater (Route 125)",
 	"Underwater (Route 129)", "Desert Underpass", "Altering Cave", "Navel Rock", "Trainer Hill",
 	"Ingame Trade", "Fateful Encounter"
+}
+
+masks = {
+	["badges"] = 0x7F80,
+	["champion"] = 0x0010,
+	["elite4"] = 0x78
 }
 
 natures = {

@@ -1,18 +1,21 @@
--- Script which collects the data required for multiplayer Nuzlocke runs.
--- Based on the scripts by https://github.com/EverOddish.
+-- Script which collects the data required for MP Nuzlocke runs.
+-- Heemskerk, J. S. & Teunisse, J. J. (2020)
 
 -- Paths
-package.path = 'lib/?.lua;' .. package.path
 package.cpath = 'lib/?.dll;' .. package.cpath
+package.path = 'lib/?.lua;' .. package.path
 
 -- Libraries
-http = require "socket.http"
 dofile "lib/tables.lua"
+http = require "socket.http"
 
 -- Aliases
-read_dword = memory.readdwordunsigned
-read_word = memory.readwordunsigned
 read_byte = memory.readbyteunsigned
+read_word = memory.readwordunsigned
+read_dword = memory.readdwordunsigned
+
+-- Current session: should be 0 by default.
+local session = 0
 
 -- Variables which store data between updates.
 local frames = 1
@@ -21,17 +24,14 @@ local trainer = {
 	["tname"] = ""
 }
 
--- Represents the current session: should be 0 by default.
-local session = 0
-
--- Returns the ascii value associated with a certain byte.
+-- Returns the ascii character associated with a certain byte.
 function as_ascii(byte)
 	if byte == 0x00 then return " "
 	elseif byte >= 0xA1 and byte <= 0xAA then return string.char(byte - 113)
 	elseif byte >= 0xAB and byte <= 0xBA then return chars[byte - 170]
 	elseif byte >= 0xBB and byte <= 0xD4 then return string.char(byte - 122)
 	elseif byte >= 0xD5 and byte <= 0xEE then return string.char(byte - 116)
-	else return ""
+	else return "_invalid_ascii_"
 	end
 end
 
@@ -51,63 +51,34 @@ function as_location(byte)
 	end
 end
 
+-- Returns the number of set bits in a bit string (Kernighan's algorithm)
+function count_set_bits(bstr)
+	local n_bits = 0
+	while bstr ~= 0 do
+		bstr = bit.band(bstr, bstr - 1)
+		n_bits = n_bits + 1
+	end
+	return n_bits
+end
+
 -- Returns the number of badges obtained thus far.
 function get_badges()
 	local addr = addresses["saveblock1_base"] +
 				 read_byte(addresses["save_offset_byte"]) +
 				 offsets.sb1["badges"]
-
-	-- Read 2 badges bytes
-	local badgesword = read_word(addr)
-
-	-- Mask with 0111111110000000
-	local badges = bit.band(0x7F80, badgesword)
-
-	-- Count 1's
-	return count_set_bits(badges)
-end
-
-function get_league_prog()
-	local addr = addresses["saveblock1_base"] +
-				 read_byte(addresses["save_offset_byte"]) +
-				 offsets.sb1["elite4"]
-
-	local addr2 = addresses["saveblock1_base"] +
-				 read_byte(addresses["save_offset_byte"]) +
-				 offsets.sb1["badges"]
-
-	local wallace = read_word(addr2)
-	local wallace2 = bit.band(0x0010, wallace)
-	
-	if (count_set_bits(wallace2) == 1) then
-		return 5
-	else
-		local league_byte = read_byte(addr)
-		local league_prog = bit.band(0x78, league_byte)
-		return count_set_bits(league_prog)
-	end
-end
-
--- Counts the number of 1's in an integer 'n' (Kernighan's algorithm)
-function count_set_bits(n)
-	count = 0
-	while (n ~= 0) do
-		n = bit.band(n, n-1)
-		count = count + 1
-	end
-	return count
+	local badge_data = bit.band(read_word(addr), masks["badges"])
+	return count_set_bits(badge_data)
 end
 
 -- Returns a number of bits from a certain location in a bit string.
-function get_bits(bit_str, loc, nbits)
-	return bit.rshift(bit_str, loc) % bit.lshift(1, nbits)
+function get_bits(bstr, loc, nbits)
+	return bit.rshift(bstr, loc) % bit.lshift(1, nbits)
 end
 
 -- Returns the pokemon data at a certain address.
-function get_decrypted_data(address, personality, tid)
+function get_decrypted_data(address, personality, key)
 	local data = {}
-	local data_order = data_orders[(personality % 24) + 1]
-	local key = bit.bxor(personality, tid)
+	local data_order = data_orders[(personality % #data_orders) + 1]
 	for i = 1, 4 do
 		local block = {}
 		for j = 1, 3 do
@@ -135,6 +106,23 @@ function get_ingame_time()
 		   get_bits(time_data, 24, 8)
 end
 
+-- Returns the current league progression.
+function get_league_prog()
+	local addr = addresses["saveblock1_base"] +
+				 read_byte(addresses["save_offset_byte"]) +
+				 offsets.sb1["badges"]
+	local champion_data = bit.band(read_word(addr), masks["champion"])
+	if count_set_bits(champion_data) == 1 then
+		return 5
+	else
+		addr = addresses["saveblock1_base"] +
+			   read_byte(addresses["save_offset_byte"]) +
+			   offsets.sb1["elite4"]
+		local elite4_data = bit.band(read_byte(addr), masks["elite4"])
+		return count_set_bits(elite4_data)
+	end
+end
+
 -- Returns the name stored at a certain address with maximum length n.
 function get_name(addr, n)
 	local name = ""
@@ -156,8 +144,7 @@ function get_slot_address(slot)
 		local box_id = read_dword(addr)
 		if box_id < const["n_boxes"] then
 			-- The box ID is valid: return the address of the current box-slot pair.
-			return addr +
-				   offsets.boxes["pokes"] +
+			return addr + offsets.boxes["pokes"] +
 				   box_id * const["box_size"] * data_sizes["boxed_poke"] +
 				   (slot - 7) * data_sizes["boxed_poke"]
 		else
@@ -189,16 +176,16 @@ end
 
 -- Posts trainer data to the database.
 function post_trainer()
+	local response = {}
 	local trainer_data = [[{
-		"league": ]] .. trainer["league"] .. [[,
 		"badges": ]] .. trainer["badges"] .. [[,
+		"league": ]] .. trainer["league"] .. [[,
 		"location": "]] .. trainer["location"] .. [[",
 		"time": ]] .. get_ingame_time() .. [[,
 		"tid": ]] .. trainer["tid"] .. [[,
 		"tname": "]] .. trainer["tname"] .. [[",
 		"session": ]] .. session .. [[
 	}]]
-	local response = {}
 	http.request{
 		url = "http://www.joran.fun/nuzlocke/db/posttrainer.php",
 		method = "POST",
@@ -218,12 +205,12 @@ end
 
 -- Updates the trainer data.
 function update_trainer()
-	local league = get_league_prog()
 	local badges = get_badges()
+	local league = get_league_prog()
 	local location = as_location(read_byte(addresses["location"]))
 	local tname = get_name(addresses["saveblock2_base"] + read_byte(addresses["save_offset_byte"]), 7)
 
-	if trainer["tname"] ~= tname then
+	if tname ~= "" and trainer["tname"] ~= tname then
 		-- Trainer is not known locally: check the TID to confirm that data can be posted.
 		local tid = read_dword(
 			addresses["saveblock2_base"] +
@@ -233,32 +220,22 @@ function update_trainer()
 		if tid ~= 0 then
 			-- Trainer has a valid TID: store and post relevant data.
 			trainer = {
-				["league"] = league,
-				["badges"] = badges,
-				["location"] = location,
-				["tid"] = tid,
-				["tname"] = tname
+				["badges"] = badges, ["league"] = league, ["location"] = location,
+				["tid"] = tid, ["tname"] = tname
 			}
 			post_trainer()
 		end
 	else
 		-- Trainer is known locally: check if updates are required.
 		-- A maximum of one update is applied to avoid ingame lagspikes.
-		if trainer["badges"] < badges then
+		if badges > trainer["badges"] then
 			-- The number of badges has increased: update relevant data.
 			trainer["badges"] = badges
 			http.request(
 				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
 				"&badges=" .. badges
 			)
-		elseif trainer["location"] ~= location then
-			-- The location has changed: update relevant data.
-			trainer["location"] = location
-			http.request(
-				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
-				"&loc=" .. string.gsub(location, " ", "%%20")
-			)
-		elseif trainer["league"] < league then
+		elseif league > trainer["league"] then
 			-- The number of league members beaten has changed: update relevant data.
 			trainer["league"] = league
 			if league ~= 5 then 
@@ -272,6 +249,13 @@ function update_trainer()
 					"&league=" .. league .. "&clear_time=" .. get_ingame_time()
 				)
 			end
+		elseif location ~= trainer["location"] then
+			-- The location has changed: update relevant data.
+			trainer["location"] = location
+			http.request(
+				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
+				"&loc=" .. string.gsub(location, " ", "%%20")
+			)
 		elseif frames >= const["fps"] * 60 then
 			-- Update the trainer's ingame time periodically.
 			frames = 0
@@ -292,21 +276,22 @@ function update()
 			-- Update each pokemon in the party and current box.
 			local slot_address = get_slot_address(slot)
 			if slot_address == -1 then break end
-			local personality = read_dword(slot_address)
 
+			local personality = read_dword(slot_address)
 			if personality ~= 0 then
 				-- There is a pokemon in the current slot.
 				local banked = "t"
 				if slot <= 6 then banked = "f" end
 
 				local tid = read_dword(slot_address + offsets.poke["tid"])
-				local data = get_decrypted_data(slot_address, personality, tid)
-				local pindex = get_bits(data[1][1], 0, 16)
+				local key = bit.bxor(personality, tid)
+				local data = get_decrypted_data(slot_address, personality, key)
 
+				local pindex = get_bits(data[1][1], 0, 16)
 				local pid = personality
 				if pindex == const["shedinja_pindex"] then pid = pid + 1 end
 
-				if (pokes[pid] == nil or slot <= 6) then
+				if pokes[pid] == nil or slot <= 6 then
 					-- The pokemon was either just caught, or is in the party.
 					local happiness = get_bits(data[1][3], 8, 8)
 					local loc_met = as_location(get_bits(data[4][1], 8, 8))
@@ -366,20 +351,20 @@ function update()
 							"banked": "]] .. banked .. [["
 						}]]
 
-						if tid ~= 61226 and not (loc_met == "Petalburg City" and pindex == 288) then
-							-- The pokemon isn't one of Steven's or Wally's Zigzagoon.
-							post_poke(poke_data, nick)
-						end
-
 						pokes[pid] = {
 							["pindex"] = pindex, ["hp"] = hp, ["lvl"] = lvl, ["nick"] = nick,
 							["banked"] = banked, ["tname"] = tname
 						}
+
+						if (tid ~= const["steven_tid"] and not (loc_met == "Petalburg City" and
+							pindex == const["zigzagoon_pindex"])) then
+							-- The pokemon isn't one of Steven's or Wally's Zigzagoon.
+							post_poke(poke_data, nick)
+						end
 					end
 
 					--Pokemon is in party and data was decrypted properly (in the middle of data swap)
-					local pindex_key = get_bits(bit.bxor(personality, tid), 0, 16)
-					if slot <= 6 and bit.bxor(pindex, pindex_key) ~= pokes[pid].pindex then
+					if slot <= 6 and bit.bxor(pindex, get_bits(key, 0, 16)) ~= pokes[pid].pindex then
 						if hp == 0 and pokes[pid].hp ~= 0 then
 							-- This pokemon has just fainted: update the associated stats.
 							local opp_addr = addresses["opp_party"]

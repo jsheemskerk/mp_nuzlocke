@@ -259,12 +259,19 @@ function update_trainer()
 				"&loc=" .. string.gsub(location, " ", "%%20")
 			)
 		elseif trainer["league"] < league then
-			-- The location has changed: update relevant data.
+			-- The number of league members beaten has changed: update relevant data.
 			trainer["league"] = league
-			http.request(
-				"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
-				"&league=" .. league
-			)
+			if league ~= 5 then 
+				http.request(
+					"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
+					"&league=" .. league
+				)
+			else
+				http.request(
+					"http://www.joran.fun/nuzlocke/db/updatetrainer.php?tid=" .. trainer["tid"] ..
+					"&league=" .. league .. "&clear_time=" .. get_ingame_time()
+				)
+			end
 		elseif frames >= const["fps"] * 60 then
 			-- Update the trainer's ingame time periodically.
 			frames = 0

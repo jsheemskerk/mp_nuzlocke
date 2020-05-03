@@ -14,6 +14,7 @@ addresses = {
 chars = {"!", "?", ".", "-", "", ".", "'", "'", "'", "'", "M", "F", "", ",", "", "/"}
 
 const = {
+	["n_league_members"] = 5,
 	["party_size"] = 6,
 	["n_boxes"] = 14,
 	["box_size"] = 30,

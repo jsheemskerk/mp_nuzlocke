@@ -386,7 +386,7 @@ function update_party(slot)
 				-- The pokemon was just added to the party.
 				pokes[pid]["banked"] = banked
 				http.request(url .. "&banked=" .. banked)
-			elseif not updated[slot] and frames >= const["fps"] * ((slot - 1) * 10) then
+			elseif not updated[slot] and frames >= const["fps"] * (((slot - 1) * 10) + 5) then
 				-- Update evs and happiness every minute.
 				-- This is phased in 10-second intervals to prevent lag.
 				local evs = get_evs(base["data"])

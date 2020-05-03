@@ -20,10 +20,10 @@ local session = 0
 -- Variables which store data between updates.
 local frames = 1
 local pokes = {}
-local reset_frames = false
 local trainer = {
 	["tname"] = ""
 }
+local updated = {false, false, false, false, false, false}
 
 -- Returns the ascii character associated with a certain byte.
 function as_ascii(byte)
@@ -386,11 +386,12 @@ function update_party(slot)
 				-- The pokemon was just added to the party.
 				pokes[pid]["banked"] = banked
 				http.request(url .. "&banked=" .. banked)
-			elseif frames >= const["fps"] * 60 then
+			elseif not updated[slot] and frames >= const["fps"] * ((slot - 1) * 10) then
 				-- Update evs and happiness every minute.
+				-- This is phased in 10-second intervals to prevent lag.
 				local evs = get_evs(base["data"])
 				local happiness = get_bits(base["data"][1][3], 8, 8)
-				reset_frames = true
+				updated[slot] = true
 				http.request(url .. "&evs=" .. evs .. "&happiness=" .. happiness)
 			end
 		end
@@ -441,8 +442,9 @@ function update_trainer()
 			trainer["location"] = location
 			http.request(url .. "&loc=" .. string.gsub(location, " ", "%%20"))
 		elseif frames >= const["fps"] * 60 then
-			-- Update ingame time every minute.
-			reset_frames = true
+			-- Update ingame time every minute and reset individual party updates.
+			frames = 0
+			updated = {false, false, false, false, false, false}
 			http.request(url .. "&time=" .. get_ingame_time())
 		end
 	end
@@ -463,11 +465,6 @@ function update()
 		for slot = 1, const["box_size"] do
 			update_box(boxes_addr, box_id, slot)
 		end
-	end
-	if reset_frames then
-		-- This is flagged when the frames are used to update.
-		frames = 0
-		reset_frames = false
 	end
 	frames = frames + 1
 end

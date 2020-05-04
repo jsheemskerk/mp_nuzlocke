@@ -23,7 +23,6 @@ local pokes = {}
 local trainer = {
 	["tname"] = ""
 }
-local updated = {false, false, false, false, false, false}
 
 -- Returns the ascii character associated with a certain byte.
 function as_ascii(byte)
@@ -369,7 +368,9 @@ function update_party(slot)
 			elseif (base["pindex"] ~= pokes[pid]["pindex"] or
 					lvl ~= pokes[pid]["lvl"] or
 					nick ~= pokes[pid]["nick"]) then
-				-- One of the stats requiring immediate updates has changed.
+				-- One of the dynamic stats has changed.
+				local evs = get_evs(base["data"])
+				local happiness = get_bits(base["data"][1][3], 8, 8)
 				local status = ""
 				if base["pindex"] ~= pokes[pid]["pindex"] then status = "&evolved"
 				elseif nick ~= pokes[pid]["nick"] then status = "&rename"
@@ -379,20 +380,14 @@ function update_party(slot)
 				pokes[pid]["nick"] = nick
 				pokes[pid]["lvl"] = lvl
 				http.request(
-					url .. "&pindex=" .. base["pindex"] .. "&lvl=" .. lvl ..
-					"&nick=" .. string.gsub(nick, " ", "%%20") .. status
+					url .. "&pindex=" .. base["pindex"] .. "&lvl=" .. lvl .. "&nick=" .. 
+					string.gsub(nick, " ", "%%20") .. "&evs=" .. evs .. "&happiness=" ..
+					happiness .. status
 				)
 			elseif banked ~= pokes[pid]["banked"] then
 				-- The pokemon was just added to the party.
 				pokes[pid]["banked"] = banked
 				http.request(url .. "&banked=" .. banked)
-			elseif not updated[slot] and frames >= const["fps"] * (((slot - 1) * 10) + 5) then
-				-- Update evs and happiness every minute.
-				-- This is phased in 10-second intervals to prevent lag.
-				local evs = get_evs(base["data"])
-				local happiness = get_bits(base["data"][1][3], 8, 8)
-				updated[slot] = true
-				http.request(url .. "&evs=" .. evs .. "&happiness=" .. happiness)
 			end
 		end
 	end
@@ -444,7 +439,6 @@ function update_trainer()
 		elseif frames >= const["fps"] * 60 then
 			-- Update ingame time every minute and reset individual party updates.
 			frames = 0
-			updated = {false, false, false, false, false, false}
 			http.request(url .. "&time=" .. get_ingame_time())
 		end
 	end
